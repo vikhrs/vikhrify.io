@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Админ Vikhrify</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    body { background: #0a0a0a; color: #f4f4f5; font-family: system-ui, sans-serif; }
+    .verified { color: #60a5fa; }
+    .blocked { color: #ef4444; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <div class="max-w-6xl mx-auto p-6">
+    <!-- Заголовок -->
+    <div class="flex items-center justify-between mb-8">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 bg-gradient-to-br from-violet-600 to-purple-600 rounded-2xl flex items-center justify-center text-3xl font-black shadow-md">V</div>
+        <h1 class="text-3xl font-bold tracking-tight">Админ-панель Vikhrify</h1>
+      </div>
+      <button onclick="logout()" class="px-5 py-2 bg-red-600/30 hover:bg-red-600/50 rounded-lg text-sm flex items-center gap-2">
+        <i class="fas fa-sign-out-alt"></i> Выйти
+      </button>
+    </div>
+
+    <!-- Статистика -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      <div class="bg-zinc-900/70 p-6 rounded-2xl border border-zinc-800/50">
+        <div class="text-zinc-400 text-sm mb-1">Зарегистрировано</div>
+        <div id="total-users" class="text-4xl font-bold">0</div>
+      </div>
+      <div class="bg-zinc-900/70 p-6 rounded-2xl border border-zinc-800/50">
+        <div class="text-zinc-400 text-sm mb-1">Активных чатов</div>
+        <div id="total-chats" class="text-4xl font-bold">0</div>
+      </div>
+      <div class="bg-zinc-900/70 p-6 rounded-2xl border border-zinc-800/50">
+        <div class="text-zinc-400 text-sm mb-1">Всего сообщений</div>
+        <div id="total-messages" class="text-4xl font-bold">0</div>
+      </div>
+    </div>
+
+    <!-- Список пользователей -->
+    <div class="bg-zinc-900/70 rounded-2xl border border-zinc-800/50 overflow-hidden">
+      <div class="p-5 border-b border-zinc-800 flex justify-between items-center">
+        <h2 class="text-xl font-bold">Пользователи</h2>
+        <input id="search" type="text" placeholder="Поиск по имени..." 
+               class="bg-zinc-800 rounded-lg py-2 px-4 outline-none w-64 text-sm"
+               oninput="filterUsers()"/>
+      </div>
+
+      <div class="p-5">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="text-zinc-400 border-b border-zinc-800">
+              <th class="pb-3">Пользователь</th>
+              <th class="pb-3 text-center">VXR</th>
+              <th class="pb-3 text-center">Вериф.</th>
+              <th class="pb-3 text-center">Статус</th>
+              <th class="pb-3">Действия</th>
+            </tr>
+          </thead>
+          <tbody id="user-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ADMIN_PASS = "sehpy9-qiqjux-hofgyN"; // твой админ-пароль
+
+    async function api(method, url, body = null) {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : null
+      });
+      if (!res.ok) throw new Error('Ошибка');
+      return res.json();
+    }
+
+    async function loadStats() {
+      const users = await api('GET', '/api/users');
+      const chatsRes = await api('GET', '/api/my-chats?userId=0'); // хак: просто берём все чаты
+      let totalMsgs = 0;
+      chatsRes.forEach(c => totalMsgs += c.messages.length);
+
+      document.getElementById('total-users').textContent = users.length;
+      document.getElementById('total-chats').textContent = chatsRes.length;
+      document.getElementById('total-messages').textContent = totalMsgs;
+
+      renderUsers(users);
+    }
+
+    function renderUsers(users) {
+      const tbody = document.getElementById('user-table');
+      tbody.innerHTML = '';
+
+      users.forEach(u => {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-zinc-800 hover:bg-zinc-800/50';
+        tr.innerHTML = `
+          <td class="py-4 flex items-center gap-3">
+            <span class="text-3xl">${u.emoji}</span>
+            <div>
+              <div class="font-medium">${u.username}</div>
+              <div class="text-xs text-zinc-500">ID: ${u.id}</div>
+            </div>
+          </td>
+          <td class="py-4 text-center font-mono">${u.vxr}</td>
+          <td class="py-4 text-center">
+            ${u.verified ? '<i class="fas fa-check-circle verified text-xl"></i>' : '<i class="fas fa-times-circle text-red-500 text-xl"></i>'}
+          </td>
+          <td class="py-4 text-center ${u.blocked ? 'blocked' : 'text-emerald-400'}">
+            ${u.blocked ? 'Заблокирован' : 'Активен'}
+          </td>
+          <td class="py-4 flex gap-2 flex-wrap">
+            <button onclick="toggleVerify(${u.id}, ${!u.verified})" 
+                    class="px-3 py-1.5 bg-blue-800/60 hover:bg-blue-700/60 rounded text-xs">
+              ${u.verified ? 'Снять ✔' : 'Выдать ✔'}
+            </button>
+            <button onclick="changeVXR(${u.id}, 100)" class="px-3 py-1.5 bg-green-800/60 hover:bg-green-700/60 rounded text-xs">+100</button>
+            <button onclick="changeVXR(${u.id}, -100)" class="px-3 py-1.5 bg-red-800/60 hover:bg-red-700/60 rounded text-xs">-100</button>
+            <button onclick="toggleBlock(${u.id}, ${!u.blocked})" 
+                    class="px-3 py-1.5 ${u.blocked ? 'bg-green-800/60' : 'bg-red-800/60'} hover:opacity-90 rounded text-xs">
+              ${u.blocked ? 'Разблок' : 'Блок'}
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterUsers() {
+      const q = document.getElementById('search').value.toLowerCase();
+      const rows = document.querySelectorAll('#user-table tr');
+      rows.forEach(row => {
+        const name = row.querySelector('div.font-medium')?.textContent.toLowerCase() || '';
+        row.style.display = name.includes(q) ? '' : 'none';
+      });
+    }
+
+    async function toggleVerify(id, value) {
+      if (!confirm(`Вы уверены? Верификация будет ${value ? 'добавлена' : 'снята'}`)) return;
+      await api('POST', '/api/admin/action', { pass: ADMIN_PASS, action: 'verify', targetId: id, value });
+      loadStats();
+    }
+
+    async function changeVXR(id, delta) {
+      await api('POST', '/api/admin/action', { pass: ADMIN_PASS, action: 'vxr', targetId: id, value: delta });
+      loadStats();
+    }
+
+    async function toggleBlock(id, value) {
+      if (!confirm(`Пользователь будет ${value ? 'разблокирован' : 'заблокирован'}`)) return;
+      await api('POST', '/api/admin/action', { pass: ADMIN_PASS, action: 'block', targetId: id, value });
+      loadStats();
+    }
+
+    function logout() {
+      localStorage.removeItem('vikhrify_user');
+      location.href = '/';
+    }
+
+    // Автозагрузка
+    window.onload = () => {
+      if (!localStorage.getItem('vikhrify_user')) {
+        alert('Войди сначала в мессенджер');
+        location.href = '/';
+      } else {
+        loadStats();
+      }
+    };
+  </script>
+</body>
+</html>
