@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vikhrify</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f0f2f5; }
+    h1 { color: #0066cc; }
+    table { border-collapse: collapse; width: 100%; max-width: 1000px; background: white; border-radius: 8px; overflow: hidden; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    th { background: #e8f0fe; }
+    button { padding: 6px 12px; margin: 3px; cursor: pointer; border-radius: 4px; }
+    .actions { white-space: nowrap; }
+    input[type="password"] { padding: 8px; font-size: 16px; width: 220px; }
+  </style>
+</head>
+<body>
+
+<h1>Vikhrify</h1>
+
+<p>Пароль: <input id="adminPass" type="password" value="sehpy9-qiqjux-hofgyN" /></p>
+
+<table id="userTable">
+  <thead>
+    <tr>
+      <th>Имя</th>
+      <th>Баланс</th>
+      <th>Галочка</th>
+      <th>Статус</th>
+      <th>Действия</th>
+    </tr>
+  </thead>
+  <tbody id="usersBody"></tbody>
+</table>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+
+  socket.on('connect', () => {
+    socket.emit('get_all_users');
+  });
+
+  socket.on('user_list', users => {
+    const tbody = document.getElementById('usersBody');
+    tbody.innerHTML = '';
+    users.forEach(user => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${user.username}</td>
+        <td>${user.balance}</td>
+        <td>${user.verified ? '✔ Есть' : '— Нет'}</td>
+        <td style="color: ${user.banned ? 'red' : 'green'}">
+          ${user.banned ? 'Заблокирован' : 'Активен'}
+        </td>
+        <td class="actions">
+          <button onclick="adminAction('${user.username}', 'verify')">Дать галочку</button>
+          <button onclick="adminAction('${user.username}', 'unverify')">Забрать галочку</button>
+          <br>
+          <button onclick="adminAction('${user.username}', 'ban')">Заблокировать</button>
+          <button onclick="adminAction('${user.username}', 'unban')">Разблокировать</button>
+          <br>
+          <button onclick="adminAction('${user.username}', 'add_balance', 50)">+50</button>
+          <button onclick="adminAction('${user.username}', 'add_balance', -50)">-50</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  });
+
+  function adminAction(username, action, value = null) {
+    const pass = document.getElementById('adminPass').value;
+    socket.emit('admin_action', { action, username, value: value || pass });
+  }
+
+  socket.on('admin_success', msg => {
+    alert(msg);
+    socket.emit('get_all_users');
+  });
+
+  socket.on('error', msg => alert('Ошибка: ' + msg));
+</script>
+</body>
+</html>
