@@ -3,276 +3,316 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Вихрифай</title>
+  <title>Vikhrify</title>
   <style>
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
-      margin: 0; padding: 0; 
-      background: #0d1117; color: #c9d1d9; 
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --text: #c9d1d9;
+      --accent: #58a6ff;
+      --success: #238636;
+      --success-hover: #2ea043;
+      --border: #30363d;
     }
-    #auth { 
-      position: fixed; inset: 0; 
-      background: rgba(13,17,23,0.95); 
-      display: flex; flex-direction: column; align-items: center; justify-content: center; 
-      gap: 16px; z-index: 100;
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
-    #app { display: none; padding: 16px; padding-bottom: 80px; }
-    h2 { color: #58a6ff; margin: 0; }
-    input { 
-      width: 280px; padding: 12px; border: 1px solid #30363d; 
-      background: #161b22; color: white; border-radius: 6px; 
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
     }
-    button { 
-      background: #238636; color: white; border: none; padding: 12px 24px; 
-      border-radius: 6px; cursor: pointer; font-weight: 600; 
+
+    #auth {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #0d1117 0%, #0a0e14 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      z-index: 100;
+      transition: opacity 0.5s ease;
     }
-    button:hover { background: #2ea043; }
-    .post { 
-      background: #161b22; padding: 16px; margin: 12px 0; 
-      border-radius: 12px; border: 1px solid #30363d; 
+
+    #auth.hidden {
+      opacity: 0;
+      pointer-events: none;
     }
-    .premium { border-left: 4px solid #58a6ff; background: #0e1a2e; }
-    .verified::after { content: " ✓"; color: #58a6ff; font-size: 1.1em; }
-    nav { 
-      position: fixed; bottom: 0; width: 100%; 
-      background: #010409; display: flex; justify-content: space-around; 
-      padding: 12px 0; border-top: 1px solid #30363d; 
+
+    #app {
+      display: none;
+      padding: 1rem;
+      padding-bottom: 5rem;
+      max-width: 800px;
+      margin: 0 auto;
     }
-    nav button { background: none; color: #8b949e; border: none; font-size: 14px; cursor: pointer; }
-    nav button.active { color: #58a6ff; font-weight: bold; }
-    #profile, #feed, #chats { display: none; }
-    #profile.active, #feed.active, #chats.active { display: block; }
-    .reactions { margin-top: 8px; font-size: 1.2em; }
+
+    h1, h2 {
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+
+    .welcome {
+      font-size: 1.8rem;
+      text-align: center;
+      margin: 2rem 0 1.5rem;
+      color: var(--accent);
+      animation: fadeIn 1.2s ease-out;
+    }
+
+    input {
+      width: 100%;
+      max-width: 360px;
+      padding: 0.9rem 1.2rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card);
+      color: white;
+      font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(88,166,255,0.2);
+    }
+
+    button {
+      padding: 0.9rem 1.8rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--success-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #444c56;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #586069;
+    }
+
+    .post {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.2rem;
+      margin-bottom: 1.2rem;
+      transition: transform 0.15s;
+    }
+
+    .post:hover {
+      transform: translateY(-2px);
+    }
+
+    .post-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #444;
+      background-size: cover;
+    }
+
+    .username {
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(13,17,23,0.92);
+      backdrop-filter: blur(10px);
+      display: flex;
+      justify-content: space-around;
+      padding: 0.8rem 0;
+      border-top: 1px solid var(--border);
+      z-index: 90;
+    }
+
+    nav button {
+      background: none;
+      border: none;
+      color: #8b949e;
+      font-size: 0.9rem;
+      cursor: pointer;
+      padding: 0.5rem 1rem;
+      transition: color 0.2s;
+    }
+
+    nav button:hover,
+    nav button.active {
+      color: var(--accent);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 480px) {
+      #auth { gap: 1.2rem; }
+      input { max-width: 90%; }
+      button { width: 90%; max-width: 360px; }
+    }
   </style>
 </head>
 <body>
 
 <div id="auth">
-  <h2>Вихрифай</h2>
-  <input id="username" placeholder="Юзернейм" type="text">
-  <input id="password" placeholder="Пароль" type="password">
-  <button onclick="register()">Зарегистрироваться</button>
-  <button onclick="login()">Войти</button>
+  <h2>Vikhrify</h2>
+  <input id="username" placeholder="Username" type="text" autocomplete="off">
+  <input id="password" placeholder="Password" type="password" autocomplete="off">
+  <button class="btn-primary" onclick="register()">Sign Up</button>
+  <button class="btn-secondary" onclick="login()">Log In</button>
 </div>
 
 <div id="app">
-  <!-- Лента -->
-  <div id="feed" class="active">
-    <div id="posts"></div>
+  <h1 class="welcome">Добро пожаловать в Vikhrify!</h1>
+  <p style="text-align:center; color:#8b949e; margin-bottom:2rem;">
+    You are logged in as <strong id="current-user">...</strong>
+  </p>
+
+  <!-- Лента (пример постов) -->
+  <div id="feed">
+    <div class="post">
+      <div class="post-header">
+        <div class="avatar" style="background-image:url('https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100');"></div>
+        <span class="username">@alex_v</span>
+      </div>
+      <p>Just launched my new side project on Vikhrify 🔥 What do you think?</p>
+      <div style="margin-top:0.8rem; color:#8b949e;">❤️ 142 · 💬 28 · 2h ago</div>
+    </div>
+
+    <div class="post">
+      <div class="post-header">
+        <div class="avatar" style="background-image:url('https://images.unsplash.com/photo-1552058544-f2b08422138a?w=100');"></div>
+        <span class="username">@maria_design</span>
+      </div>
+      <p>Dark mode vibes only 🌙 Who's with me?</p>
+      <div style="margin-top:0.8rem; color:#8b949e;">❤️ 89 · 💬 15 · 45m ago</div>
+    </div>
   </div>
 
-  <!-- Чаты (пока заглушка) -->
-  <div id="chats">
-    <h3>Чаты</h3>
-    <button onclick="startChat()">+ Новый чат</button>
-    <div id="chat-list">Пока пусто</div>
-  </div>
-
-  <!-- Профиль -->
-  <div id="profile">
-    <h3>Профиль</h3>
-    <p id="profile-name">Имя: <span id="name">—</span> <span id="verified"></span></p>
-    <p>Юзернейм: @<span id="username-display"></span></p>
-    <p>Баланс: <span id="balance">0 VXR</span></p>
-    <p>Премиум: <span id="premium-status">нет</span></p>
-    <button onclick="editProfile()">Редактировать</button>
-    <button onclick="buyPremium()" style="background:#8b5cf6;">Купить премиум (500 VXR / 199 ₽)</button>
-  </div>
-
-  <!-- Навигация -->
+  <!-- Нижняя навигация -->
   <nav>
-    <button class="active" onclick="showSection('feed')">Лента</button>
-    <button onclick="showSection('chats')">Чаты</button>
-    <button onclick="showSection('profile')">Профиль</button>
-    <button onclick="addPost()">+</button>
+    <button class="active">Feed</button>
+    <button>Chats</button>
+    <button>Profile</button>
+    <button onclick="createPost()">+</button>
   </nav>
 </div>
 
 <script>
-let currentUser = null;
-let users = {}; // симуляция базы на фронте (для отображения verified и т.д.)
-let posts = [];
-
-function showSection(section) {
-  document.querySelectorAll('#feed, #chats, #profile').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-  document.getElementById(section).classList.add('active');
-  document.querySelector(`nav button[onclick="showSection('${section}')"]`).classList.add('active');
-
-  if (section === 'feed') loadFeed();
-  if (section === 'profile') loadProfile();
-}
+console.log("Vikhrify — full version loaded");
 
 function register() {
-  const u = document.getElementById('username').value.trim();
-  const p = document.getElementById('password').value.trim();
-  if (!u || !p) return alert('Заполни юзернейм и пароль, брат');
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
 
-  fetch('/register', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({username: u, password: p})
+  if (!username || !password) {
+    alert("Please enter username and password");
+    return;
+  }
+
+  fetch("/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password })
   })
-  .then(r => r.json())
-  .then(d => {
-    if (d.success) {
-      alert(d.message || 'Добро пожаловать в Vikhrify!');
-      loginAfterReg(u, p);
-    } else {
-      alert(d.error || 'Ошибка при регистрации');
-    }
-  })
-  .catch(err => alert('Ошибка сети: ' + err));
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        alert(data.message || "Добро пожаловать в Vikhrify!");
+        showApp(username);
+      } else {
+        alert(data.error || "Registration failed (maybe username taken?)");
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Cannot connect to server. Is backend running?");
+    });
 }
 
 function login() {
-  const u = document.getElementById('username').value.trim();
-  const p = document.getElementById('password').value.trim();
-  if (!u || !p) return alert('Заполни поля');
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
 
-  loginAfterReg(u, p);
-}
+  if (!username || !password) {
+    alert("Please enter username and password");
+    return;
+  }
 
-function loginAfterReg(u, p) {
-  fetch('/login', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({username: u, password: p})
+  fetch("/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password })
   })
-  .then(r => r.json())
-  .then(d => {
-    if (d.success) {
-      currentUser = u;
-      document.getElementById('auth').style.display = 'none';
-      document.getElementById('app').style.display = 'block';
-      loadFeed();
-      loadProfile(); // чтобы сразу подгрузить профиль
-    } else {
-      alert(d.error || 'Неверный логин или пароль');
-    }
-  })
-  .catch(err => alert('Ошибка сети: ' + err));
-}
-
-function loadFeed() {
-  fetch('/posts')
     .then(r => r.json())
     .then(data => {
-      posts = data;
-      document.getElementById('posts').innerHTML = posts.map(p => `
-        <div class="post ${p.isPremium ? 'premium' : ''}">
-          <b>${p.username}${users[p.username]?.verified ? '<span class="verified"></span>' : ''}</b><br>
-          ${p.text}
-          <div>❤️ ${p.likes} | Комменты: ${p.comments.length}</div>
-          ${p.isPremium ? <div class="reactions">🔥 ${p.reactions?.['🔥']||0} 😂 ${p.reactions?.['😂']||0}</div> : ''}
-          <button onclick="likePost(${p.id})">Лайк</button>
-          <button onclick="commentPost(${p.id})">Коммент</button>
-          ${p.isPremium ? <button onclick="reactPost(${p.id}, '🔥')">🔥</button><button onclick="reactPost(${p.id}, '😂')">😂</button> : ''}
-        </div>
-      `).join('');
+      if (data.success) {
+        alert("Добро пожаловать в Vikhrify!");
+        showApp(username);
+      } else {
+        alert(data.error || "Wrong username or password");
+      }
     })
-    .catch(err => console.error('Ошибка загрузки ленты:', err));
+    .catch(err => {
+      console.error(err);
+      alert("Cannot connect to server");
+    });
 }
 
-function addPost() {
-  const text = prompt('Что на уме?');
-  if (!text) return;
-  const isPrem = confirm('Сделать премиум-пост? (доп. реакции)');
-  fetch('/posts', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({username: currentUser, text, isPremium: isPrem})
-  })
-  .then(() => loadFeed())
-  .catch(err => alert('Ошибка при публикации'));
+function showApp(username) {
+  document.getElementById("auth").classList.add("hidden");
+  setTimeout(() => {
+    document.getElementById("auth").style.display = "none";
+    document.getElementById("app").style.display = "block";
+  }, 500);
+
+  document.getElementById("current-user").textContent = username;
 }
 
-function likePost(id) {
-  fetch(`/posts/${id}/like`, {method: 'POST'})
-    .then(() => loadFeed());
+function createPost() {
+  const text = prompt("What's on your mind?");
+  if (text) {
+    alert("Post created (in real version it would go to server):\n\n" + text);
+    // Здесь можно добавить fetch('/posts', ...) когда бэкенд готов
+  }
 }
-
-function commentPost(id) {
-  const text = prompt('Твой коммент:');
-  if (!text) return;
-  fetch(`/posts/${id}/comment`, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({username: currentUser, text})
-  })
-  .then(() => loadFeed());
-}
-
-function reactPost(id, emoji) {
-  fetch(`/posts/${id}/react`, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({emoji})
-  })
-  .then(() => loadFeed());
-}
-
-function loadProfile() {
-  fetch('/profile', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({username: currentUser})
-  })
-  .then(r => r.json())
-  .then(d => {
-    if (d.success) {
-      const user = d.user;
-      users[currentUser] = user; // сохраняем для отображения verified
-      document.getElementById('name').textContent = user.name || user.username;
-      document.getElementById('username-display').textContent = currentUser;
-      document.getElementById('balance').textContent = user.balance + ' VXR';
-      document.getElementById('premium-status').textContent = user.premiumUntil 
-        ? 'до ' + new Date(user.premiumUntil).toLocaleDateString('ru-RU') 
-        : 'нет';
-      document.getElementById('verified').innerHTML = user.verified ? '✓' : '';
-    }
-  });
-}
-
-function editProfile() {
-  const newName = prompt('Новое имя:', document.getElementById('name').textContent);
-  if (!newName) return;
-  fetch('/profile/update', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.
-      stringify({username: currentUser, name: newName})
-  })
-  .then(() => loadProfile());
-}
-
-function buyPremium() {
-  const method = confirm('Платить VXR? (иначе рубли)') ? 'VXR' : 'RUB';
-  fetch('/premium/buy', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({username: currentUser, method})
-  })
-  .then(r => r.json())
-  .then(d => {
-    if (d.success) {
-      alert(`Премиум куплен до ${d.until}!`);
-      loadProfile();
-    } else {
-      alert(d.error || 'Не получилось купить');
-    }
-  });
-}
-
-function startChat() {
-  const who = prompt('С кем чатить? @');
-  if (who) alert(`Чат с @${who} открыт (пока заглушка)`);
-}
-
-// Инициализация
-window.onload = () => {
-  // если уже залогинен (можно добавить localStorage позже)
-};
 </script>
 </body>
 </html>
