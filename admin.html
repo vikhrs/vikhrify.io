@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админ-панель Vikhrify</title>
+  <style>
+    body { margin:0; font-family:Arial; background:#0d1117; color:#c9d1d9; padding:20px; }
+    .card { background:#161b22; padding:24px; border-radius:12px; max-width:600px; margin:auto; border:1px solid #30363d; }
+    input, select, button { width:100%; padding:12px; margin:10px 0; border-radius:6px; font-size:1rem; }
+    input, select { background:#0d1117; border:1px solid #30363d; color:#c9d1d9; }
+    button { background:#238636; color:white; border:none; cursor:pointer; }
+    button.danger { background:#c94a4a; }
+    button.danger:hover { background:#a33d3d; }
+    h1, h2 { text-align:center; }
+    #status { margin-top:16px; text-align:center; min-height:20px; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>Админ-панель</h1>
+
+  <h2>Выдать галочку</h2>
+  <input id="target-username" placeholder="Юзернейм цели">
+  <select id="badge-type">
+    <option value="none">Снять галочку</option>
+    <option value="blue">Синяя</option>
+    <option value="yellow">Жёлтая (Premium)</option>
+    <option value="red">Красная</option>
+  </select>
+  <button onclick="setBadge()">Применить</button>
+
+  <h2>Накрутить подписчиков</h2>
+  <input id="fake-username" placeholder="Юзернейм цели">
+  <input id="fake-count" type="number" min="1" value="100">
+  <button onclick="fakeFollowers()">Накрутить</button>
+
+  <h2>Очистить ленту</h2>
+  <button class="danger" onclick="clearFeed()">ОЧИСТИТЬ ВСЮ ЛЕНТУ</button>
+
+  <div id="status"></div>
+</div>
+
+<script>
+function showStatus(text, color = '#0f0') {
+  document.getElementById('status').innerHTML = `<span style="color:${color}">${text}</span>`;
+}
+
+async function setBadge() {
+  const username = document.getElementById('target-username').value.trim();
+  const badge = document.getElementById('badge-type').value;
+  if (!username) return showStatus('Введите юзернейм', '#f33');
+
+  try {
+    const res = await fetch('/api/set-badge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetUsername: username, badge })
+    });
+    const data = await res.json();
+    showStatus(data.success ? 'Галочка выдана' : data.error, data.success ? '#0f0' : '#f33');
+  } catch {
+    showStatus('Ошибка сети', '#f33');
+  }
+}
+
+async function fakeFollowers() {
+  const username = document.getElementById('fake-username').value.trim();
+  const count = parseInt(document.getElementById('fake-count').value);
+  if (!username || count < 1) return showStatus('Некорректные данные', '#f33');
+
+  try {
+    const res = await fetch('/api/fake-followers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetUsername: username, amount: count })
+    });
+    const data = await res.json();
+    showStatus(data.success ? `+${count} подписчиков накручено` : data.error, data.success ? '#0f0' : '#f33');
+  } catch {
+    showStatus('Ошибка сети', '#f33');
+  }
+}
+
+async function clearFeed() {
+  if (!confirm('Вы уверены? Лента очистится навсегда!')) return;
+  try {
+    const res = await fetch('/api/clear-posts', { method: 'POST' });
+    const data = await res.json();
+    showStatus(data.success ? 'Лента очищена' : data.error, data.success ? '#0f0' : '#f33');
+  } catch {
+    showStatus('Ошибка сети', '#f33');
+  }
+}
+</script>
+</body>
+</html>
