@@ -43,37 +43,50 @@
 <div id="app">
   <h1>Добро пожаловать в Vikhrify</h1>
 
-  <div id="feed" class="section active">
-    <h2>Лента</h2>
-    <div id="posts"></div>
-    <button onclick="addPost()">+ Текстовой пост</button>
-    <button class="btn-voice" onclick="addVoicePost()">+ Голосовой пост</button>
+  <!-- Основной контент -->
+<div class="main-content">
+
+  <!-- Профиль -->
+  <div id="profile-page">
+    <div class="profile-header">
+      <img id="profile-avatar" class="avatar" src="https://via.placeholder.com/80?text=User" alt="avatar">
+      <div>
+        <h2 id="profile-name">—</h2>
+<div style="color:#8b949e; margin:4px 0;">@<span id="profile-username">—</span></div>
+        <div>Баланс: <strong id="profile-balance">0</strong> VXR</div>
+      </div>
+    </div>
+
+    <h3 style="margin:16px 0 8px;">Мои посты</h3>
+    <div id="my-posts-container"></div>
   </div>
 
-  <div id="chats" class="section">
-    <h2>Чаты</h2>
-    <input id="chat-user" placeholder="Найти юзернейм">
-    <button onclick="startChat()">Найти и написать</button>
-    <div id="chat-area" style="margin-top:1rem; background:#161b22; padding:1rem; border-radius:8px;"></div>
+  <!-- Чаты (пока заглушка) -->
+  <div id="chats-page" class="hidden">
+    <h3>Чаты</h3>
+    <p>Раздел в разработке</p>
   </div>
 
-  <div id="profile" class="section">
-    <h2>Профиль</h2>
-    <img id="profile-photo" src="https://via.placeholder.com/100?text=Фото" alt="Фото" style="width:100px;height:100px;border-radius:50%;display:block;margin:0 auto;">
-    <p>Имя: <span id="profile-name">—</span> <button onclick="editName()">Изменить</button></p>
-    <p>Юзернейм: @<span id="profile-username">—</span></p>
-    <p>Баланс: <span id="profile-balance">0 VXR</span></p>
-    <p>Верификация: <span id="profile-verified">—</span></p>
-    <p>Премиум: <span id="profile-premium">нет</span></p>
-    <button class="btn-premium" onclick="buyPremium()">Купить премиум (500 VXR)</button>
+  <!-- Создание постов -->
+  <div id="posts-page" class="hidden">
+    <div class="auth-card" style="margin:0 auto; max-width:500px;">
+      <h2>Новый пост</h2>
+      <textarea id="post-content" rows="6" placeholder="Что у тебя на уме?"></textarea>
+      <button id="publish-btn">Опубликовать</button>
+    </div>
   </div>
 
-  <nav>
-    <button onclick="showSection('feed')">Лента</button>
-    <button onclick="showSection('chats')">Чаты</button>
-    <button onclick="showSection('profile')">Профиль</button>
-  </nav>
 </div>
+
+<!-- Нижняя навигация -->
+<div class="bottom-nav">
+  <div class="nav-item active" data-page="profile">Профиль</div>
+  <div class="nav-item" data-page="chats">Чаты</div>
+  <div class="nav-item" data-page="posts">Посты</div>
+</div>
+
+<script>
+let currentUser = null;
 
 <script>
 let currentUser = null;
