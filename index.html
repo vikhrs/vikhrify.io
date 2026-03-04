@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vikhrify</title>
+  <style>
+    body { margin:0; font-family:Arial,sans-serif; background:#111; color:#eee; }
+    #auth { position:fixed; inset:0; background:#000c; display:flex; align-items:center; justify-content:center; z-index:100; }
+    #auth.hidden { display:none; }
+    .card { background:#222; padding:24px; border-radius:12px; width:90%; max-width:400px; }
+    input, button, textarea { width:100%; padding:12px; margin:8px 0; border-radius:6px; border:none; font-size:1rem; }
+    button { background:#0284c7; color:white; cursor:pointer; }
+    .premium-btn { background:#7c3aed; margin:12px 0; }
+    nav { position:fixed; bottom:0; left:0; right:0; background:#1a1a1a; display:flex; }
+    nav button { flex:1; padding:16px; background:none; border:none; color:#aaa; cursor:pointer; font-size:0.9rem; }
+    nav button.active { color:#fff; background:#0284c7; }
+    .section { display:none; padding:80px 16px 100px; }
+    .section.active { display:block; }
+    .post { background:#1e1e1e; padding:16px; margin:12px 0; border-radius:8px; }
+    .post img { max-width:100%; border-radius:8px; margin-top:8px; }
+    .avatar { width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid #0284c7; }
+    .verified { color:#1da1f2; font-size:1.2em; margin-left:4px; }
+    .badge { width:16px; height:16px; border-radius:50%; display:inline-block; margin-left:6px; vertical-align:middle; }
+    .badge.blue   { background:#1da1f2; }
+    .badge.yellow { background:#ffd700; box-shadow:0 0 8px #ffd700; }
+    .badge.red    { background:#ff4444; }
+    .author-name { cursor:pointer; font-weight:bold; }
+    .author-name:hover { color:#1da1f2; }
+    .search-container { position:absolute; top:16px; right:16px; width:240px; z-index:10; }
+    .search-input { padding:10px; background:#222; border:1px solid #444; color:#eee; border-radius:6px; width:100%; }
+    .search-results { position:absolute; top:100%; left:0; right:0; background:#222; border:1px solid #444; border-radius:6px; max-height:300px; overflow-y:auto; display:none; }
+    .search-results.show { display:block; }
+    .search-item { padding:10px; cursor:pointer; display:flex; gap:12px; align-items:center; }
+    .search-item:hover { background:#333; }
+    #chat-list, #chat-window { margin:16px 0; }
+    .chat-item { padding:12px; background:#1e1e1e; margin:8px 0; border-radius:8px; cursor:pointer; }
+    .chat-item:hover { background:#2a2a2a; }
+    .message { margin:8px 0; padding:10px; border-radius:12px; max-width:80%; }
+    .message.sent { background:#0284c7; align-self:flex-end; }
+    .message.received { background:#444; align-self:flex-start; }
+    #messages { display:flex; flex-direction:column; max-height:400px; overflow-y:auto; padding:16px; background:#111; border-radius:8px; }
+  </style>
+</head>
+<body>
+
+<div id="auth">
+  <div class="card">
+    <h2 style="text-align:center">Vikhrify</h2>
+    <input id="name" placeholder="Имя">
+    <input id="username" placeholder="Юзернейм">
+    <input id="password" type="password" placeholder="Пароль">
+    <button onclick="register()">Зарегистрироваться</button>
+    <button onclick="login()">Войти</button>
+    <div id="auth-msg" style="margin-top:12px; text-align:center; min-height:20px;"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+
+  <div class="search-container">
+    <input id="search-input" class="search-input" placeholder="Поиск @username..." autocomplete="off">
+    <div id="search-results" class="search-results"></div>
+  </div>
+
+  <!-- Лента -->
+  <div id="feed" class="section active">
+    <h2>Лента</h2>
+    <textarea id="post-text" placeholder="Что нового?" rows="3"></textarea>
+    <input type="file" id="post-photo" accept="image/*">
+    <button onclick="publishPost()">Опубликовать</button>
+    <div id="posts-list"></div>
+  </div>
+
+  <!-- Чаты -->
+  <div id="chats" class="section">
+    <h2>Чаты</h2>
+    <input id="chat-search" placeholder="Найти пользователя по @username..." style="margin-bottom:12px;">
+    <div id="chat-list"></div>
+    <div id="chat-window" style="display:none;">
+      <h3>Чат с <span id="chat-with"></span></h3>
+      <div id="messages"></div>
+      <textarea id="message-text" placeholder="Сообщение..." rows="2"></textarea>
+      <button onclick="sendMessage()">Отправить</button>
+      <button onclick="closeChat()">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- Купить VXR / Премиум -->
+  <div id="buy" class="section">
+    <h2>Магазин</h2>
+    <button class="premium-btn" onclick="buyPremium()">Купить Premium (499 VXR)</button>
+    <p>Выберите пакет VXR:</p>
+    <div id="buy-buttons"></div>
+  </div>
+
+  <!-- Профиль -->
+  <div id="profile" class="section">
+    <h2>Профиль</h2>
+    <img id="my-avatar" class="avatar" src="https://via.placeholder.com/60">
+    <p>
+      <input type="file" id="avatar-upload" accept="image/*" onchange="changeAvatar()">
+      <button onclick="document.getElementById('avatar-upload').click()">Сменить аватарку</button>
+    </p>
+    <p>Имя: <span id="my-name"></span> <button onclick="editName()">Изменить</button></p>
+    <p>Юзернейм: @<span id="my-username"></span></p>
+    <p>Галочка: <span id="my-badge">—</span></p>
+    <p>Премиум: <span id="my-premium">нет</span></p>
+    <p>Подписчиков: <span id="my-followers">0</span></p>
+    <p>Баланс: <span id="my-balance">0</span> VXR</p>
+    <button onclick="inviteFriends()">Пригласить друзей (+50 VXR за каждого)</button>
+    <div id="admin-panel" style="display:none; margin-top:20px; padding:16px; background:#222; border-radius:8px;">
+      <h3>Админ-панель</h3>
+      <input id="admin-target" placeholder="Юзернейм цели">
+      <select id="admin-badge">
+        <option value="none">Без галочки</option>
+        <option value="blue">Синяя</option>
+        <option value="yellow">Жёлтая</option>
+        <option value="red">Красная</option>
+      </select>
+      <button onclick="setBadge()">Выдать галочку</button>
+      <button onclick="clearFeed()" style="background:#ff4444;">Очистить всю ленту</button>
+    </div>
+    <h3>Мои посты</h3>
+    <div id="my-posts"></div>
+  </div>
+
+  <nav>
+    <button class="active" onclick="show('feed')">Лента</button>
+    <button onclick="show('chats')">Чаты</button>
+    <button onclick="show('buy')">Магазин</button>
+    <button onclick="show('profile')">Профиль</button>
+  </nav>
+</div>
+
+<script>
+let user = null;
+const msg = document.getElementById('auth-msg');
+let currentChatWith = null;
+
+// Регистрация и вход — НЕ ТРОГАЕМ
+async function register() {
+  msg.innerHTML = '';
+  const name = document.getElementById('name').value.trim();
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value.trim();
+
+  if (!name || !username || !password) return msg.innerHTML = '<span style="color:#f33">Заполните все поля</span>';
+
+  try {
+    const r = await fetch('/api/register', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({name, username, password})
+    });
+    const d = await r.json();
+    if (d.success) {
+      msg.innerHTML = '<span style="color:#0f0">Зарегистрирован! Теперь войдите.</span>';
+    } else {
+      msg.innerHTML = '<span style="color:#f33">' + (d.error || 'Ошибка') + '</span>';
+    }
+  } catch(e) {
+    msg.innerHTML = '<span style="color:#f33">Ошибка сети</span>';
+  }
+}
+
+async function login() {
+  msg.innerHTML = '';
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value.trim();
+
+  if (!username || !password) return msg.innerHTML = '<span style="color:#f33">Заполните юзернейм и пароль</span>';
+
+  try {
+    const r = await fetch('/api/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({username, password})
+    });
+    const d = await r.json();
+    if (d.success) {
+      user = d.user;
+      localStorage.setItem('user', JSON.stringify(user));
+      document.getElementById('auth').classList.add('hidden');
+      document.getElementById('app').style.display = 'block';
+      loadProfile();
+      loadPosts();
+      loadChats();
+      show('feed');
+      if (user.username === 'admin') document.getElementById('admin-panel').style.display = 'block';
+    } else {
+      msg.innerHTML = '<span style="color:#f33">' + (d.error || 'Неверно') + '</span>';
+    }
+  } catch(e) {
+    msg.innerHTML = '<span style="color:#f33">Ошибка сети</span>';
+  }
+}
+
+// Автовход
+const saved = localStorage.getItem('user');
+if (saved) {
+  user = JSON.parse(saved);
+  document.getElementById('auth').classList.add('hidden');
+  document.getElementById('app').style.display = 'block';
+  loadProfile();
+  loadPosts();
+  loadChats();
+  show('feed');
+  if (user.username === 'admin') document.getElementById('admin-panel').style.display = 'block';
+}
+
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+// Поиск по username
+let searchTimer;
+document.getElementById('search-input')?.addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  const q = e.target.value.trim();
+  if (q.length < 2) {
+    document.getElementById('search-results').innerHTML = '';
+    document.getElementById('search-results').classList.remove('show');
+    return;
+  }
+  searchTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`/api/search-users?q=${encodeURIComponent(q)}`);
+      const results = await res.json();
+      const cont = document.getElementById('search-results');
+      cont.innerHTML = results.length ? '' : '<div style="padding:12px;text-align:center;color:#aaa">Никто не найден</div>';
+      results.forEach(u => {
+        const div = document.createElement('div');
+        div.className = 'search-item';
+        div.innerHTML = `
+          <img src="${u.avatar}" width="40" height="40" style="border-radius:50%">
+          <div>
+            ${u.name} ${u.badge !== 'none' ? `<span class="badge ${u.badge}"></span>` : ''}
+            <br><small>@${u.username}</small>
+          </div>`;
+        div.onclick = () => viewUserProfile(u.username);
+        cont.appendChild(div);
+      });
+      cont.classList.add('show');
+    } catch {}
+  }, 400);
+});
+
+async function viewUserProfile(username) {
+  try {
+    const res = await fetch(`/api/user/${username}`);
+    const u = await res.json();
+    alert(`Профиль @${u.username}\nИмя: ${u.name}\nГалочка: ${u.badge}\nПодписчиков: ${u.followers}`);
+    // Можно расширить до модалки/отдельной секции
+  } catch {
+    alert('Ошибка загрузки профиля');
+  }
+}
+
+// Посты
+async function loadPosts() {
+  const r = await fetch('/api/posts');
+  const all = await r.json();
+  document.getElementById('posts-list').innerHTML = all.map(p => `
+    <div class="post">
+      <div style="display:flex;gap:12px;align-items:center;">
+        <img src="${p.avatar}" class="avatar">
+        <div>
+          <span class="author-name" onclick="viewUserProfile('${p.username}')">
+            ${p.name} @${p.username}${getBadge(p.badge)}
+          </span>
+        </div>
+      </div>
+      <p>${p.content}</p>
+      ${p.image ? `<img src="${p.image}" alt="фото">` : ''}
+      <small>${new Date(p.createdAt).toLocaleString()}</small>
+    </div>
+  `).join('');
+}
+
+function getBadge(badge) {
+  if (badge === 'none' || !badge) return '';
+  return `<span class="badge ${badge}"></span>`;
+}
+
+async function publishPost() {
+  if (!user) return alert('Войдите');
+  const content = document.getElementById('post-text').value.trim();
+  const file = document.getElementById('post-photo').files[0];
+
+  if (!content) return alert('Напишите текст');
+
+  let image = null;
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      image = reader.result;
+      await sendPost(content, image);
+    };
+    reader.readAsDataURL(file);
+  } else {
+    await sendPost(content, null);
+  }
+}
+
+async function sendPost(content, image) {
+  await fetch('/api/posts', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({userId: user.id, content, image})
+  });
+  document.getElementById('post-text').value = '';
+  document.getElementById('post-photo').value = '';
+  loadPosts();
+}
+
+// Профиль
+async function loadProfile() {
+  const r = await fetch(`/api/me/${user.id}`);
+  user = await r.json();
+  localStorage.setItem('user', JSON.stringify(user));
+
+  document.getElementById('my-name').textContent = user.name;
+  document.getElementById('my-username').textContent = user.username;
+  document.getElementById('my-avatar').src = user.avatar;
+  document.getElementById('my-balance').textContent = user.balance;
+  document.getElementById('my-premium').textContent = user.isPremium ? 'да' : 'нет';
+  document.getElementById('my-badge').innerHTML = user.badge !== 'none' ? `<span class="badge ${user.badge}"></span>` : 'нет';
+  document.getElementById('my-followers').textContent = user.followers || 0;
+}
+
+// Премиум
+async function buyPremium() {
+  if (confirm('Купить Premium за 499 VXR?')) {
+    try {
+      const res = await fetch('/api/buy-premium', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({userId: user.id})
+      });
+      const d = await res.json();
+      if (d.success) {
+        alert('Premium куплен!');
+        loadProfile();
+      } else {
+        alert(d.error || 'Ошибка');
+      }
+    } catch {
+      alert('Ошибка сети');
+    }
+  }
+}
+
+// Админ
+async function setBadge() {
+  const target = document.getElementById('admin-target').value.trim();
+  const badge = document.getElementById('admin-badge').value;
+  if (!target) return alert('Введите юзернейм');
+  try {
+    const res = await fetch('/api/set-badge', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({targetUsername: target, badge, adminId: user.id})
+    });
+    const d = await res.json();
+    alert(d.success ? 'Галочка выдана' : (d.error || 'Ошибка'));
+  } catch {
+    alert('Ошибка');
+  }
+}
+
+async function clearFeed() {
+  if (confirm('Очистить ВСЮ ленту?')) {
+    try {
+      const res = await fetch('/api/clear-posts', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({adminId: user.id})
+      });
+      const d = await res.json();
+      if (d.success) {
+        alert('Лента очищена');
+        loadPosts();
+      } else alert(d.error || 'Ошибка');
+    } catch {}
+  }
+}
+
+// Чаты
+async function loadChats() {
+  // Пока заглушка — список последних диалогов можно расширить
+  document.getElementById('chat-list').innerHTML = '<p>Начните поиск пользователя выше</p>';
+}
+
+document.getElementById('chat-search')?.addEventListener('input', async e => {
+  const q = e.target.value.trim();
+  if (q.length < 3) return;
+  try {
+    const res = await fetch(`/api/search-users?q=${encodeURIComponent(q)}`);
+    const users = await res.json();
+    let html = '';
+    users.forEach(u => {
+      if (u.username === user.username) return;
+      html += `<div class="chat-item" onclick="openChat('${u.username}')">@${u.username} — ${u.name}</div>`;
+    });
+    document.getElementById('chat-list').innerHTML = html || '<p>Никто не найден</p>';
+  } catch {}
+});
+
+function openChat(withUsername) {
+  currentChatWith = withUsername;
+  document.getElementById('chat-with').textContent = withUsername;
+  document.getElementById('chat-window').style.display = 'block';
+  loadMessages();
+}
+
+function closeChat() {
+  currentChatWith = null;
+  document.getElementById('chat-window').style.display = 'none';
+}
+
+async function loadMessages() {
+  if (!currentChatWith) return;
+  // Для простоты — заглушка, можно добавить реальный fetch /api/messages/:withUsername
+  document.getElementById('messages').innerHTML = '<p>Сообщений пока нет</p>';
+}
+
+async function sendMessage() {
+  const text = document.getElementById('message-text').value.trim();
+  if (!text || !currentChatWith) return;
+  try {
+    await fetch('/api/send-message', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({fromUsername: user.username, toUsername: currentChatWith, text})
+    });
+    document.getElementById('message-text').value = '';
+    loadMessages();
+  } catch {}
+}
+
+// Пригласить друзей
+function inviteFriends() {
+  const link = `${window.location.origin}?ref=${user.referralCode || 'XXXXXX'}`;
+  prompt('Скопируй ссылку и отправь друзьям (за каждого +50 VXR):', link);
+}
+
+// Магазин VXR (пакеты)
+const packs = [100,500,1000,2000,5000,10000];
+document.getElementById('buy-buttons').innerHTML = packs.map(v => `
+  <button onclick="alert('Переход на оплату ${v} VXR (симуляция)')">Купить ${v} VXR</button>
+`).join('');
+
+// Старт
+loadPosts();
+</script>
+</body>
+</html>
