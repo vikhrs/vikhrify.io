@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админка Vikhrify</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+    }
+    h1 {
+      color: #58a6ff;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #161b22;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    th, td {
+      padding: 14px;
+      text-align: left;
+      border-bottom: 1px solid #30363d;
+    }
+    th {
+      background: #0e1117;
+      color: #58a6ff;
+    }
+    tr:hover {
+      background: #1f2937;
+    }
+    .yes {
+      color: #3fb950;
+      font-weight: bold;
+    }
+    .no {
+      color: #f85149;
+    }
+    button {
+      background: #238636;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 0 5px;
+    }
+    button.minus {
+      background: #f85149;
+    }
+    input[type="number"] {
+      width: 80px;
+      padding: 6px;
+      background: #222;
+      color: white;
+      border: 1px solid #444;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Админка Vikhrify</h1>
+
+<table id="usersTable">
+  <thead>
+    <tr>
+      <th>@Юзернейм</th>
+      <th>Галочка</th>
+      <th>Баланс VXR</th>
+      <th>Премиум</th>
+      <th>Действия</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  const password = 'sehpy9-qiqjux-hofgyN';
+
+  fetch(`/admin/data?pass=${password}`)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) {
+        document.body.innerHTML = '<h1 style="color:red;text-align:center">Пароль неверный</h1>';
+        return;
+      }
+
+      const tbody = document.querySelector('#usersTable tbody');
+      data.users.forEach(user => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>@${user.username}</td>
+          <td class="${user.verified ? 'yes' : 'no'}">${user.verified ? '✓ Подтверждён' : '—'}</td>
+          <td>${user.balance} VXR</td>
+          <td class="${user.premium ? 'yes' : 'no'}">${user.premium ? 'Да' : 'Нет'}</td>
+          <td>
+            <input id="amt_${user.username}" type="number" placeholder="Сумма" min="1">
+            <button onclick="changeBalance('${user.username}', 1)">+</button>
+            <button class="minus" onclick="changeBalance('${user.username}', -1)">-</button>
+            ${user.verified 
+              ? <button class="minus" onclick="toggleVerify('${user.username}', false)">Забрать галку</button>
+              : `<button onclick="toggleVerify('${user.username}', true)">Выдать галку</button>`}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    })
+    .catch(() => {
+      document.body.innerHTML = '<h1 style="color:red;text-align:center">Ошибка загрузки админки</h1>';
+    });
+
+  function changeBalance(username, sign) {
+    const input = document.getElementById(`amt_${username}`);
+    const amt = parseInt(input.value);
+    if (isNaN(amt) || amt <= 0) return alert('Введи сумму > 0');
+
+    fetch(`/admin/balance?user=${username}&amt=${sign * amt}&pass=${password}`)
+      .then(r => r.text())
+      .then(text => alert(text))
+      .then(() => location.reload());
+  }
+
+  function toggleVerify(username, setTo) {
+    fetch(`/admin/verify?user=${username}&set=${setTo}&pass=${password}`)
+      .then(r => r.text())
+      .then(text => alert(text))
+      .then(() => location.reload());
+  }
+</script>
+
+</body>
+</html>
