@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vikhrify</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f0f2f5; }
+    #login { max-width: 400px; margin: auto; text-align: center; }
+    #app { max-width: 800px; margin: auto; display: none; }
+    #posts { border: 1px solid #ccc; padding: 15px; min-height: 300px; background: white; border-radius: 8px; }
+    .post { border-bottom: 1px solid #eee; padding: 12px 0; }
+    .verified { color: #1da1f2; font-weight: bold; }
+    button { padding: 10px 20px; margin: 6px; cursor: pointer; border-radius: 6px; }
+    input { padding: 10px; font-size: 16px; border-radius: 6px; border: 1px solid #ccc; }
+    h1.welcome { color: #0066cc; margin: 40px 0 20px; }
+  </style>
+</head>
+<body>
+
+<div id="login">
+  <h1 class="welcome">Добро пожаловать в Vikhrify!</h1>
+  <h2>Вход / Регистрация</h2>
+  <input id="username" placeholder="Ваше имя (мин 3 символа)" style="width: 90%; max-width: 320px;" />
+  <br><br>
+  <button onclick="register()">Войти</button>
+</div>
+
+<div id="app">
+  <h2>Привет, <span id="myname"></span>! Баланс: <span id="balance">0</span> монет</h2>
+  <button onclick="location.href='/admin'">Админка</button>
+  <hr style="margin: 20px 0;">
+
+  <input id="postText" placeholder="Напиши пост..." style="width: 70%; min-width: 300px;" />
+  <button onclick="sendPost()">Опубликовать</button>
+  <hr style="margin: 20px 0;">
+
+  <h3>Лента</h3>
+  <div id="posts"></div>
+
+  <h3>Пользователи онлайн</h3>
+  <div id="users"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  let myUsername = '';
+
+  function register() {
+    const name = document.getElementById('username').value.trim();
+    if (!name) return alert('Введите имя');
+    socket.emit('register', name);
+  }
+
+  socket.on('login_success', data => {
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    myUsername = data.username;
+    document.getElementById('myname').textContent = data.username;
+    document.getElementById('balance').textContent = data.balance;
+  });
+
+  socket.on('error', msg => alert(msg));
+
+  function sendPost() {
+    const text = document.getElementById('postText').value.trim();
+    if (!text) return;
+    socket.emit('post_text', text);
+    document.getElementById('postText').value = '';
+  }
+
+  socket.on('new_post', post => {
+    addPostToDOM(post);
+  });
+
+  function addPostToDOM(post) {
+    const postsDiv = document.getElementById('posts');
+    const div = document.createElement('div');
+    div.className = 'post';
+    div.innerHTML = `
+      <strong>${post.user}${post.verified ? ' <span class="verified">✔</span>' : ''}</strong> 
+      <small>(${post.time})</small><br>
+      ${post.text}
+    `;
+    postsDiv.insertBefore(div, postsDiv.firstChild);
+  }
+
+  socket.on('update_balance', bal => {
+    document.getElementById('balance').textContent = bal;
+  });
+</script>
+</body>
+</html>
