@@ -15,16 +15,6 @@
     button { border:none; cursor:pointer; font-weight:bold; }
     .btn-reg { background:#238636; color:white; }
     .btn-log { background:#444c56; color:white; }
-    .btn-premium { background:#9d7fff; color:black; }
-    .btn-voice { background:#6e40c9; color:white; }
-    .post { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:1rem; margin:1rem 0; }
-    .post img { max-width:100%; border-radius:8px; margin-top:0.5rem; }
-    .avatar { width:40px; height:40px; border-radius:50%; background:#444; }
-    nav { position:fixed; bottom:0; left:0; right:0; background:#000; display:flex; justify-content:space-around; padding:0.8rem 0; border-top:1px solid #333; }
-    nav button { background:none; border:none; color:#aaa; font-size:0.9rem; cursor:pointer; }
-    nav button.active { color:#58a6ff; }
-    .section { display:none; }
-    .section.active { display:block; }
     #msg { text-align:center; margin-top:1rem; font-size:1rem; }
     .ok { color:#3fb950; }
     .err { color:#f85149; }
@@ -41,77 +31,54 @@
   <div id="msg"></div>
 </div>
 
-<div id="app">
-  <div id="feed" class="section active">
-    <h2>Лента</h2>
-    <div id="posts"></div>
-  </div>
-
-  <nav>
-    <button data-section="feed" onclick="showSection('feed')">Лента</button>
-  </nav>
+<div id="app" style="display:none;">
+  <h2>Ты внутри! Мессенджер работает.</h2>
+  <!-- Тут потом добавишь чаты, ленту и т.д. -->
 </div>
 
 <script>
-  console.log('Скрипт загружен');
+  console.log('Скрипт успешно загрузился — reg и log определены');
 
-  let currentUser = null;
-  const msg = document.getElementById('msg');
-  const auth = document.getElementById('auth');
-  const app = document.getElementById('app');
-
-  function showMsg(text, ok = false) {
-    msg.innerHTML = <span class="${ok ? 'ok' : 'err'}">${text}</span>;
+  function showMsg(text, isOk = false) {
+    document.getElementById('msg').innerHTML = <span class="${isOk ? 'ok' : 'err'}">${text}</span>;
   }
 
-  async function reg() {
-    console.log('reg()');
+  function reg() {
+    console.log('reg вызвана');
     const u = document.getElementById('username').value.trim();
     const p = document.getElementById('password').value;
-    if (!u || !p) return showMsg('Заполни всё');
+    if (!u || !p) return showMsg('Заполни всё!');
     showMsg('Регистрирую...', true);
-    try {
-      const res = await fetch('/register', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({username: u, password: p})
-      });
-      const data = await res.json();
-      showMsg(data.success ? 'Готово! Входи' : data.error || 'Ошибка', data.success);
-    } catch {
-      showMsg('Сервер не отвечает');
-    }
+    fetch('/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: u, password: p })
+    }).then(r => r.json())
+      .then(d => showMsg(d.success ? 'Готово! Входи' : d.error || 'Ошибка', d.success))
+      .catch(() => showMsg('Сервер отвалился'));
   }
 
-  async function log() {
-    console.log('log()');
+  function log() {
+    console.log('log вызвана');
     const u = document.getElementById('username').value.trim();
     const p = document.getElementById('password').value;
-    if (!u || !p) return showMsg('Заполни всё');
+    if (!u || !p) return showMsg('Заполни всё!');
     showMsg('Входим...', true);
-    try {
-      const res = await fetch('/login', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({username: u, password: p})
-      });
-      const data = await res.json();
-      if (data.success) {
-        currentUser = u;
-        showMsg('Вошёл!', true);
-        auth.classList.add('hidden');
-        app.style.display = 'block';
-      } else {
-        showMsg(data.error || 'Неверно');
-      }
-      } catch {
-      showMsg('Сервер не отвечает');
-    }
-  }
-
-  function showSection(id) {
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.getElementById(id)?.classList.add('active');
+    fetch('/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: u, password: p })
+    }).then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          showMsg('Вошёл!', true);
+          document.getElementById('auth').classList.add('hidden');
+          document.getElementById('app').style.display = 'block';
+        } else {
+          showMsg(d.error || 'Неверный логин/пароль');
+        }
+      })
+      .catch(() => showMsg('Сервер отвалился'));
   }
 </script>
 </body>
