@@ -5,69 +5,111 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vikhrify</title>
   <style>
-    body { margin:0; padding:0; font-family:Arial,sans-serif; background:#0d1117; color:#c9d1d9; height:100vh; display:flex; align-items:center; justify-content:center; }
-    .container { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:40px; width:380px; box-shadow:0 10px 30px rgba(0,0,0,0.5); }
-    h1 { color:#58a6ff; text-align:center; margin-bottom:30px; }
-    input { width:100%; padding:12px; margin:10px 0; border:1px solid #30363d; border-radius:6px; background:#0d1117; color:white; }
-    button { width:100%; padding:12px; margin:10px 0; border:none; border-radius:6px; font-size:16px; cursor:pointer; }
-    #reg { background:#238636; color:white; }
-    #log { background:#444c56; color:white; }
-    #msg { text-align:center; margin-top:20px; font-size:14px; }
-    .ok { color:#3fb950; }
-    .err { color:#f85149; }
+    body { margin:0; padding:0; font-family:Arial,sans-serif; background:#0d1117; color:#c9d1d9; min-height:100vh; }
+    #auth { position:fixed; inset:0; background:#0d1117; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.5rem; z-index:100; }
+    #auth.hidden { display:none; }
+    #app { display:none; padding:1rem; padding-bottom:5rem; max-width:900px; margin:0 auto; }
+    h1 { color:#58a6ff; text-align:center; margin:1rem 0; }
+    input { width:100%; max-width:360px; padding:0.8rem; border:1px solid #30363d; border-radius:6px; background:#161b22; color:white; }
+    button { padding:0.8rem 1.5rem; border:none; border-radius:6px; cursor:pointer; font-weight:bold; }
+    .btn-reg { background:#238636; color:white; }
+    .btn-log { background:#444c56; color:white; }
+    .post { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:1rem; margin:1rem 0; }
+    .post-header { display:flex; align-items:center; gap:0.8rem; margin-bottom:0.8rem; }
+    .avatar { width:40px; height:40px; border-radius:50%; background:#444; }
+    nav { position:fixed; bottom:0; left:0; right:0; background:#000; display:flex; justify-content:space-around; padding:0.8rem 0; border-top:1px solid #333; }
+    nav button { background:none; border:none; color:#aaa; font-size:0.9rem; cursor:pointer; }
+    nav button.active { color:#58a6ff; }
+    #status { text-align:center; color:#3fb950; font-size:1.1rem; margin-top:1rem; }
   </style>
 </head>
 <body>
-<div class="container">
-  <h1>Vikhrify</h1>
+
+<div id="auth">
+  <h1>Добро пожаловать в Vikhrify!</h1>
   <input id="username" placeholder="Юзернейм" type="text">
   <input id="password" placeholder="Пароль" type="password">
-  <button id="reg">Зарегистрироваться</button>
-  <button id="log">Войти</button>
-  <div id="msg"></div>
+  <button class="btn-reg" onclick="register()">Зарегистрироваться</button>
+  <button class="btn-log" onclick="login()">Войти</button>
+  <div id="status"></div>
+</div>
+
+<div id="app">
+  <h1>Добро пожаловать в Vikhrify!</h1>
+  <div id="feed">
+    <h2>Лента</h2>
+    <div id="posts"></div>
+  </div>
+
+  <nav>
+    <button class="active">Лента</button>
+    <button>Чаты</button>
+    <button>Профиль</button>
+    <button onclick="addPost()">+</button>
+  </nav>
 </div>
 
 <script>
-const msg = document.getElementById('msg');
-const username = document.getElementById('username');
-const password = document.getElementById('password');
+let currentUser = null;
+const status = document.getElementById('status');
 
 async function register() {
-  msg.innerHTML = '';
-  if (!username.value || !password.value) return msg.innerHTML = '<span class="err">Заполни всё</span>';
-  msg.innerHTML = '<span class="ok">Регистрирую...</span>';
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value.trim();
+  if (!u || !p) return status.textContent = 'Заполни всё';
+  status.textContent = 'Регистрирую...';
   try {
-    const res = await fetch('/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: username.value.trim(), password: password.value })
-    });
-    const data = await res.json();
-    msg.innerHTML = data.success ? '<span class="ok">Готово! Заходи</span>' : '<span class="err">' + (data.error || 'Ошибка') + '</span>';
-  } catch (e) {
-    msg.innerHTML = '<span class="err">Сервер не отвечает</span>';
+    const r = await fetch('/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:u, password:p})});
+    const d = await r.json();
+    status.textContent = d.success ? 'Готово! Заходи' : d.error;
+  } catch {
+    status.textContent = 'Сервер не отвечает';
   }
 }
 
 async function login() {
-  msg.innerHTML = '';
-  if (!username.value || !password.value) return msg.innerHTML = '<span class="err">Заполни всё</span>';
-  msg.innerHTML = '<span class="ok">Входим...</span>';
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value.trim();
+  if (!u || !p) return status.textContent = 'Заполни всё';
+  status.textContent = 'Входим...';
   try {
-    const res = await fetch('/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: username.value.trim(), password: password.value })
-    });
-    const data = await res.json();
-    msg.innerHTML = data.success ? '<span class="ok">Ты внутри!</span>' : '<span class="err">' + (data.error || 'Ошибка') + '</span>';
-  } catch (e) {
-    msg.innerHTML = '<span class="err">Сервер не отвечает</span>';
+    const r = await fetch('/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:u, password:p})});
+    const d = await r.json();
+    if (d.success) {
+      currentUser = u;
+      document.getElementById('auth').classList.add('hidden');
+      document.getElementById('app').style.display = 'block';
+      loadPosts();
+    } else {
+      status.textContent = d.error;
+    }
+  } catch {
+    status.textContent = 'Сервер не отвечает';
   }
 }
 
-document.getElementById('reg').onclick = register;
-document.getElementById('log').onclick = login;
+async function loadPosts() {
+  const r = await fetch('/posts');
+  const posts = await r.json();
+  document.getElementById('posts').innerHTML = posts.map(p => `
+    <div class="post">
+      <div class="post-header">
+        <div class="avatar"></div>
+        <strong>@${p.username}</strong>
+      </div>
+      <p>${p.text}</p>
+    </div>
+  `).join('') || '<p>Пока постов нет</p>';
+}
+  async function addPost() {
+  if (!currentUser) return alert('Сначала войди');
+  const text = prompt('Что хочешь сказать?');
+  if (!text) return;
+  await fetch('/posts', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, text})});
+  loadPosts();
+}
+
+document.getElementById('password').addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
 </script>
 </body>
 </html>
