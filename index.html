@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VXR Messenger</title>
+  <style>
+    body { margin:0; font-family:Arial; background:#111; color:#fff; height:100vh; display:12px 24px; border-radius:12px; font-size:1em; cursor:pointer; }
+    .nav button.active { background:#007bff; }
+    .content { flex:1; padding:20px; overflow-y:auto; }
+    .section { display:none; }
+    .section.active { display:block; }
+    input, textarea, button { padding:10px; margin:8px 0; width:100%; max-width:400px; border-radius:8px; border:none; }
+    button { background:#007bff; color:#fff; cursor:pointer; }
+    .post { background:#222; padding:12px; margin:10px 0; border-radius:10px; }
+    .avatar { width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid #007bff; }
+    #loginScreen { position:fixed; inset:0; background:#0008; display:flex; align-items:center; justify-content:center; z-index:10; }
+    #loginScreen.hidden { display:none; }
+  </style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div style="background:#222; padding:30px; border-radius:12px; text-align:center;">
+    <h2>Вход в VXR</h2>
+    <input id="username" placeholder="Твой юзернейм" required/>
+    <input id="email" type="email" placeholder="Email" required/>
+    <button onclick="registerOrLogin()">Зарегистрироваться / Войти</button>
+    <p style="font-size:0.8em; margin-top:12px;">Юзернейм будет уникальным навсегда</p>
+  </div>
+</div>
+
+<header>VXR Messenger</header>
+
+<div class="content">
+  <!-- Профиль -->
+  <div id="profile" class="section">
+    <h2>Твой профиль</h2>
+    <img id="avatarPreview" class="avatar" src="https://via.placeholder.com/80" alt="Аватар"/>
+    <input type="file" id="avatarInput" accept="image/*" onchange="uploadAvatar()"/>
+    <input id="displayName" placeholder="Отображаемое имя"/>
+    <button onclick="saveProfile()">Сохранить профиль</button>
+    
+    <h3>Премиум</h3>
+    <p id="premiumStatus">Обычный пользователь</p>
+    <button onclick="buyPremium()">Купить премиум (за VXR / рубли)</button>
+  </div>
+
+  <!-- Чат (заглушка) -->
+  <div id="chat" class="section">
+    <h2>Чаты</h2>
+    <p>Пока пусто... Добавим позже</p>
+  </div>
+
+  <!-- Посты -->
+  <div id="posts" class="section">
+    <h2>Твои посты</h2>
+    <textarea id="postText" placeholder="Что у тебя нового?"></textarea>
+    <button onclick="addPost()">Опубликовать</button>
+    <div id="postList"></div>
+  </div>
+</div>
+
+<div class="nav">
+  <button onclick="show('profile')" class="active">Профиль</button>
+  <button onclick="show('chat')">Чаты</button>
+  <button onclick="show('posts')">Посты</button>
+</div>
+
+<script>
+let currentUser = null;
+
+function loadUser() {
+  const saved = localStorage.getItem('vxrUser');
+  if (saved) {
+    currentUser = JSON.parse(saved);
+    document.getElementById('loginScreen').classList.add('hidden');
+    updateProfile();
+    loadPosts();
+  }
+}
+
+function registerOrLogin() {
+  const username = document.getElementById('username').value.trim();
+  const email = document.getElementById('email').value.trim();
+
+  if (!username || !email) return alert('Заполни всё!');
+
+  const users = JSON.parse(localStorage.getItem('vxrUsers') || '{}');
+  if (users ) return alert('Юзернейм занят, придумай другой');
+
+  currentUser = {
+    username,
+    email,
+    displayName: username,
+    avatar: 'https://via.placeholder.com/80',
+    premium: false,
+    posts: []
+  };
+
+  users = currentUser;
+  localStorage.setItem('vxrUsers', JSON.stringify(users));
+  localStorage.setItem('vxrUser', JSON.stringify(currentUser));
+
+  document.getElementById('loginScreen').classList.add('hidden');
+  updateProfile();
+}
+
+function updateProfile() {
+  document.getElementById('avatarPreview').src = currentUser.avatar;
+  document.getElementById('displayName').value = currentUser.displayName;
+  document.getElementById('premiumStatus').textContent = currentUser.premium ? 'Премиум ✓' : 'Обычный пользователь';
+}
+
+function saveProfile() {
+  currentUser.displayName = document.getElementById('displayName').value;
+  localStorage.setItem('vxrUser', JSON.stringify(currentUser));
+  alert('Профиль сохранён!');
+}
+
+function uploadAvatar() {
+  const file = document.getElementById('avatarInput').files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    currentUser.avatar = e.target.result;
+    document.getElementById('avatarPreview').src = currentUser.avatar;
+    localStorage.setItem('vxrUser', JSON.stringify(currentUser));
+  };
+  reader.readAsDataURL(file);
+}
+
+function buyPremium() {
+  if (currentUser.premium) return alert('У тебя уже премиум!');
+  currentUser.premium = true;
+  localStorage.setItem('vxrUser', JSON.stringify(currentUser));
+  updateProfile();
+  alert('Премиум активирован! (в реале тут будет оплата)');
+}
+
+function addPost() {
+  const text = document.getElementById('postText').value.trim();
+  if (!text) return;
+  currentUser.posts.unshift({ text, date: new Date().toLocaleString() });
+  localStorage.setItem('vxrUser', JSON.stringify(currentUser));
+  loadPosts();
+  document.getElementById('postText').value = '';
+}
+
+function loadPosts() {
+  const list = document.getElementById('postList');
+  list.innerHTML = '';
+  (currentUser.posts || []).forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'post';
+    div.innerHTML = `<strong>\( {currentUser.displayName}</strong><br> \){p.text}<br><small>${p.date}</small>`;
+    list.appendChild(div);
+  });
+}
+
+function show(tab) {
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(tab).classList.add('active');
+}
+
+// Запуск
+loadUser();
+if (!currentUser) {
+  document.getElementById('loginScreen').classList.remove('hidden');
+} else {
+  show('profile');
+}
+</script>
+</body>
+</html>
