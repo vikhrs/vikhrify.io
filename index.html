@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vikhrify</title>
+  <style>
+    body { margin:0; font-family:Arial,sans-serif; background:#0d1117; color:#c9d1d9; }
+    #auth { position:fixed; inset:0; background:rgba(0,0,0,0.92); display:flex; align-items:center; justify-content:center; z-index:9999; }
+    #auth.hidden { display:none; }
+    .card { background:#161b22; padding:32px; border-radius:12px; width:90%; max-width:380px; border:1px solid #30363d; }
+    input, button { width:100%; padding:12px; margin:10px 0; border-radius:6px; font-size:1rem; }
+    input { background:#0d1117; border:1px solid #30363d; color:#c9d1d9; }
+    button { background:#238636; color:white; border:none; cursor:pointer; }
+    button:hover { background:#2ea043; }
+    #auth-message { margin-top:12px; text-align:center; min-height:20px; }
+    nav { position:fixed; bottom:0; left:0; right:0; background:#161b22; display:flex; }
+    nav button { flex:1; padding:16px; background:none; border:none; color:#8b949e; cursor:pointer; }
+    nav button.active { color:#58a6ff; }
+    .section { display:none; padding:80px 16px 100px; }
+    .section.active { display:block; }
+    .profile-header { display:flex; align-items:center; gap:16px; padding:16px; background:#161b22; border-radius:12px; border:1px solid #30363d; margin:16px; }
+    .avatar { width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid #30363d; }
+    .badge { width:18px; height:18px; border-radius:50%; display:inline-block; margin-left:6px; vertical-align:middle; }
+    .badge.yellow { background:#f0c300; box-shadow:0 0 10px #f0c300; }
+    #buy-modal { position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:10000; display:none; align-items:center; justify-content:center; }
+    #buy-modal.show { display:flex; }
+    .buy-card { background:#161b22; padding:24px; border-radius:12px; width:90%; max-width:420px; border:1px solid #30363d; }
+  </style>
+</head>
+<body>
+
+<div id="auth">
+  <div class="card">
+    <h2>Vikhrify</h2>
+    <input id="name" placeholder="Имя">
+    <input id="username" placeholder="Юзернейм">
+    <input id="password" type="password" placeholder="Пароль">
+    <button onclick="register()">Зарегистрироваться</button>
+
+    <div style="margin:20px 0; text-align:center; color:#8b949e;">или войти</div>
+
+    <input id="login-username" placeholder="Юзернейм">
+    <input id="login-password" type="password" placeholder="Пароль">
+    <button onclick="login()">Войти</button>
+
+    <div id="auth-message"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+  <div id="profile" class="section active">
+    <div class="profile-header">
+      <img id="my-avatar" class="avatar" src="https://via.placeholder.com/80?text=User">
+      <div>
+        <h2 id="my-name">—</h2>
+        <p>@<span id="my-username">—</span> <span id="my-badge"></span></p>
+        <p>Премиум: <span id="my-premium">нет</span></p>
+        <p>Подписчиков: <span id="my-followers">0</span></p>
+        <p>Баланс: <span id="my-balance">1000</span> VXR</p>
+      </div>
+    </div>
+
+    <div style="margin:16px;">
+      <button onclick="buyPremium()" style="background:#7c3aed; margin:8px 0;">Купить Premium (499 VXR)</button>
+      <button onclick="openBuyModal()">Купить VXR</button>
+      <button onclick="inviteFriends()">Пригласить друзей</button>
+    </div>
+
+    <div id="admin-panel" style="display:none; margin:16px; padding:16px; background:#161b22; border-radius:12px; border:1px solid #30363d;">
+      <h3>Админ-панель</h3>
+      <p><a href="/admin" target="_blank" style="color:#58a6ff;">Открыть полную админ-панель</a></p>
+    </div>
+  </div>
+
+  <nav>
+    <button class="active" onclick="showSection('profile')">Профиль</button>
+    <button onclick="showSection('feed')">Лента</button>
+    <button onclick="showSection('chats')">Чаты</button>
+    <button onclick="showSection('buy')">Магазин</button>
+  </nav>
+</div>
+
+<div id="buy-modal">
+  <div class="buy-card">
+    <h2>Купить VXR</h2>
+    <p style="text-align:center; color:#8b949e; margin-bottom:16px;">Выберите сумму (от 100 до 10000 ₽)</p>
+    <input type="range" id="vxr-range" min="100" max="10000" step="100" value="500" oninput="updateVxr()">
+    <p id="vxr-display" style="text-align:center; font-size:1.8rem; margin:16px 0;">500 ₽ = 500 VXR</p>
+    <button onclick="goToPayment()" style="background:#39d353; margin-top:12px; width:100%;">Оплатить через Platega</button>
+    <button onclick="closeBuyModal()" style="background:#30363d; margin-top:8px; width:100%;">Отмена</button>
+  </div>
+</div>
+
+<script>
+let currentUser = null;
+const msg = document.getElementById('auth-message');
+
+window.onload = () => {
+  const saved = localStorage.getItem('vikhrify_user');
+  if (saved) {
+    try {
+      currentUser = JSON.parse(saved);
+      showApp();
+    } catch (e) {
+      localStorage.removeItem('vikhrify_user');
+    }
+  }
+};
+
+async function register() {
+  msg.innerHTML = '';
+  const name = document.getElementById('name').value.trim();
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value.trim();
+
+  if (!name || !username || !password) {
+    msg.innerHTML = '<span style="color:#f33">Заполните все поля</span>';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, username, password })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      currentUser = data.user;
+      localStorage.setItem('vikhrify_user', JSON.stringify(currentUser));
+      msg.innerHTML = '<span style="color:#0f0">Регистрация успешна!</span>';
+      setTimeout(showApp, 1000);
+    } else {
+      msg.innerHTML = `<span style="color:#f33">${data.error || 'Ошибка'}</span>`;
+    }
+  } catch (e) {
+    msg.innerHTML = '<span style="color:#f33">Ошибка сети</span>';
+    console.error(e);
+  }
+}
+
+async function login() {
+  msg.innerHTML = '';
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value.trim();
+
+  if (!username || !password) {
+    msg.innerHTML = '<span style="color:#f33">Заполните поля</span>';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      currentUser = data.user;
+      localStorage.setItem('vikhrify_user', JSON.stringify(currentUser));
+      msg.innerHTML = '<span style="color:#0f0">Вход выполнен!</span>';
+      setTimeout(showApp, 1000);
+    } else {
+      msg.innerHTML = `<span style="color:#f33">${data.error || 'Неверные данные'}</span>`;
+    }
+  } catch (e) {
+    msg.innerHTML = '<span style="color:#f33">Ошибка сети</span>';
+    console.error(e);
+  }
+}
+
+function showApp() {
+  document.getElementById('auth').classList.add('hidden');
+  document.getElementById('app').style.display = 'block';
+  renderProfile();
+  if (currentUser.username === 'admin') {
+    document.getElementById('admin-panel').style.display = 'block';
+  }
+}
+
+function renderProfile() {
+  if (!currentUser) return;
+  document.getElementById('my-name').textContent = currentUser.name;
+  document.getElementById('my-username').textContent = currentUser.username;
+  document.getElementById('my-balance').textContent = currentUser.balance;
+  document.getElementById('my-premium').textContent = currentUser.isPremium ? 'да' : 'нет';
+  document.getElementById('my-followers').textContent = currentUser.followers || 0;
+  document.getElementById('my-avatar').src = currentUser.avatar;
+  document.getElementById('my-badge').innerHTML = currentUser.badge && currentUser.badge !== 'none' ? `<span class="badge ${currentUser.badge}"></span>` : '';
+}
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id)?.classList.add('active');
+}
+
+function openBuyModal() {
+  document.getElementById('buy-modal').classList.add('show');
+}
+
+function closeBuyModal() {
+  document.getElementById('buy-modal').classList.remove('show');
+}
+
+function updateVxr() {
+  const val = document.getElementById('vxr-range').value;
+  document.getElementById('vxr-display').textContent = `${val} ₽ = ${val} VXR`;
+}
+
+async function goToPayment() {
+  const amount = parseInt(document.getElementById('vxr-range').value);
+  if (amount < 100) return alert('Минимум 100 ₽');
+
+  closeBuyModal();
+
+  try {
+    const res = await fetch('/api/create-platega-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: amount,
+        userId: currentUser.id,
+        description: 'Пополнение баланса VXR в Vikhrify'
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.success && data.paymentUrl) {
+      window.location.href = data.paymentUrl;
+    } else {
+      alert('Не удалось создать платёж: ' + (data.error || 'Неизвестная ошибка'));
+    }
+  } catch (err) {
+    alert('Ошибка соединения с сервером: ' + err.message);
+    console.error(err);
+  }
+}
+
+function inviteFriends() {
+  const code = currentUser.referralCode || currentUser.id;
+  prompt('Скопируй ссылку для друзей:', `${location.origin}?ref=${code}`);
+}
+
+async function buyPremium() {
+  if (!currentUser) return alert('Сначала войдите');
+  try {
+    const res = await fetch('/api/buy-premium', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id })
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentUser = data.user;
+      localStorage.setItem('vikhrify_user', JSON.stringify(currentUser));
+      renderProfile();
+      alert('Premium активирован!');
+    } else {
+      alert(data.error || 'Ошибка');
+    }
+  } catch (e) {
+    alert('Ошибка сети');
+  }
+}
+</script>
+</body>
+</html>
