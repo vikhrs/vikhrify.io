@@ -28,8 +28,6 @@
     #msg { text-align:center; margin-top:1rem; font-size:1rem; }
     .ok { color:#3fb950; }
     .err { color:#f85149; }
-    #chat-list { margin-top:1rem; background:#161b22; padding:1rem; border-radius:8px; }
-    #chat-area { margin-top:1rem; background:#161b22; padding:1rem; border-radius:8px; }
   </style>
 </head>
 <body>
@@ -47,135 +45,74 @@
   <div id="feed" class="section active">
     <h2>Лента</h2>
     <div id="posts"></div>
-    <div style="display:flex; justify-content:space-between; margin-top:1rem;">
-      <button onclick="addTextPost()" style="background:#ffffff; color:black; width:48%;">+ Текстовой пост</button>
-      <button class="btn-voice" onclick="addVoicePost()" style="width:48%;">+ Голосовой пост</button>
-    </div>
-  </div>
-
-  <div id="chats" class="section">
-    <h2>Чаты</h2>
-    <input id="chat-user" placeholder="Найти по юзернейму">
-    <button onclick="startChat()">Найти</button>
-    <div id="chat-list"><h3>Последние собеседники</h3><ul id="chat-contacts"></ul></div>
-    <div id="chat-area"></div>
-  </div>
-
-  <div id="profile" class="section">
-    <h2>Профиль</h2>
-    <img id="profile-photo" src="https://via.placeholder.com/100?text=Фото" alt="Фото" style="width:100px;height:100px;border-radius:50%;display:block;margin:0 auto;">
-    <p>Имя: <span id="profile-name">—</span> <button onclick="editName()">Изменить</button></p>
-    <p>Юзернейм: @<span id="profile-username">—</span></p>
-    <p>Фото (URL): <input id="profile-photo-input" placeholder="https://..."><button onclick="updatePhoto()">Сохранить</button></p>
-    <p>Баланс: <span id="profile-balance">0 VXR</span></p>
-    <p>Верификация: <span id="profile-verified">—</span></p>
-    <p>Премиум: <span id="profile-premium">нет</span></p>
-    <button class="btn-premium" onclick="buyPremium()">Купить премиум (299 VXR)</button>
   </div>
 
   <nav>
-    <button onclick="showSection('feed')">Лента</button>
-    <button onclick="showSection('chats')">Чаты</button>
-    <button onclick="showSection('profile')">Профиль</button>
+    <button data-section="feed" onclick="showSection('feed')">Лента</button>
   </nav>
 </div>
 
 <script>
+  console.log('Скрипт загружен');
+
   let currentUser = null;
   const msg = document.getElementById('msg');
   const auth = document.getElementById('auth');
   const app = document.getElementById('app');
 
-  console.log('index.html скрипт загружен');
-
-  function showMessage(text, isOk = false) {
-    msg.innerHTML = <span class="${isOk ? 'ok' : 'err'}">${text}</span>;
+  function showMsg(text, ok = false) {
+    msg.innerHTML = <span class="${ok ? 'ok' : 'err'}">${text}</span>;
   }
 
-  function reg() {
-    console.log('reg() вызвана');
-    const u = document.getElementById('username')?.value?.trim() || '';
-    const p = document.getElementById('password')?.value || '';
-    if (!u || !p) return showMessage('Заполни юзернейм и пароль');
-
-    showMessage('Регистрирую...', true);
-    fetch('/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: u, password: p })
-    })
-    .then(r => r.json())
-    .then(d => {
-      if (d.success) showMessage('Зарегистрирован! Входи', true);
-      else showMessage(d.error || 'Ошибка регистрации');
-    })
-    .catch(() => showMessage('Сервер не отвечает'));
+  async function reg() {
+    console.log('reg()');
+    const u = document.getElementById('username').value.trim();
+    const p = document.getElementById('password').value;
+    if (!u || !p) return showMsg('Заполни всё');
+    showMsg('Регистрирую...', true);
+    try {
+      const res = await fetch('/register', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username: u, password: p})
+      });
+      const data = await res.json();
+      showMsg(data.success ? 'Готово! Входи' : data.error || 'Ошибка', data.success);
+    } catch {
+      showMsg('Сервер не отвечает');
+    }
   }
 
-  function log() {
-    console.log('log() вызвана');
-    const u = document.getElementById('username')?.value?.trim() || '';
-    const p = document.getElementById('password')?.value || '';
-    if (!u || !p) return showMessage('Заполни юзернейм и пароль');
-
-    showMessage('Входим...', true);
-    fetch('/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: u, password: p })
-    })
-    .then(r => r.json())
-    .then(d => {
-      if (d.success) {
+  async function log() {
+    console.log('log()');
+    const u = document.getElementById('username').value.trim();
+    const p = document.getElementById('password').value;
+    if (!u || !p) return showMsg('Заполни всё');
+    showMsg('Входим...', true);
+    try {
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username: u, password: p})
+      });
+      const data = await res.json();
+      if (data.success) {
         currentUser = u;
-        showMessage('Вошёл!', true);
+        showMsg('Вошёл!', true);
         auth.classList.add('hidden');
         app.style.display = 'block';
-        showSection('feed');
-        loadPosts();
-        loadProfile();
-        loadChatContacts();
       } else {
-        showMessage(d.error || 'Неверный логин/пароль');
+        showMsg(data.error || 'Неверно');
       }
-    })
-    .catch(() => showMessage('Сервер не отвечает'));
+      } catch {
+      showMsg('Сервер не отвечает');
+    }
   }
 
   function showSection(id) {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-    const btn = Array.from(document.querySelectorAll('nav button')).find(b => b.getAttribute('onclick')?.includes(id));
-    if (btn) btn.classList.add('active');
+    document.getElementById(id)?.classList.add('active');
   }
-
-  // Остальные функции (loadPosts, addTextPost и т.д.) — как были, но с try/catch
-  async function loadPosts() {
-    try {
-      const r = await fetch('/posts');
-      const posts = await r.json();
-      document.getElementById('posts').innerHTML = posts.map(p => `
-        <div class="post">
-          <div class="post-header">
-            <div class="avatar"></div>
-            <strong>@${p.username}</strong>
-          </div>
-          <p>${p.text}</p>
-          ${p.photo ? <img src="${p.photo}" alt="Фото" style="max-width:100%;border-radius:8px;margin-top:0.5rem;"> : ''}
-        </div>
-      `).join('') || '<p>Постов пока нет</p>';
-    } catch (e) {
-      console.error(e);
-      document.getElementById('posts').innerHTML = '<p>Ошибка загрузки постов</p>';
-    }
-  }
-
-  // ... (остальные функции addTextPost, addVoicePost, loadProfile, editName, buyPremium, loadChatContacts, startChat, sendChat — оставь как были, они не ломали)
-
-  document.getElementById('password').addEventListener('keypress', e => {
-    if (e.key === 'Enter') log();
-  });
 </script>
 </body>
 </html>
