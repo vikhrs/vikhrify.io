@@ -7,15 +7,15 @@
   <style>
     body { font-family:system-ui; background:#0f172a; color:#e2e8f0; margin:0; padding:20px; }
     h1 { color:#60a5fa; }
-    table { width:100%; border-collapse:collapse; margin:20px 0; }
+    table { width:100%; border-collapse:collapse; margin:20px 0; font-size:0.95em; }
     th, td { padding:10px; border:1px solid #334155; text-align:left; }
     th { background:#1e293b; }
-    .action-btn { padding:6px 10px; margin:2px; border-radius:4px; cursor:pointer; }
   </style>
 </head>
 <body>
-  <h1>Админ-панель (пока заглушка)</h1>
-  <p>Пользователей в системе: <strong id="user-count">—</strong></p>
+  <h1>Админ-панель (пока просмотр)</h1>
+
+  <p>Пользователей: <strong id="count">—</strong></p>
 
   <table>
     <thead>
@@ -28,30 +28,30 @@
         <th>Вериф.</th>
       </tr>
     </thead>
-    <tbody id="users-table"></tbody>
+    <tbody id="users"></tbody>
   </table>
 
   <script>
-    fetch('/api/users')  // Этого эндпоинта пока нет → добавь в server.js если нужно
+    fetch('/api/users') // этого эндпоинта пока нет — если хочешь, добавим
       .then(r => r.json())
-      .then(users => {
-        document.getElementById('user-count').textContent = users.length;
-        const tbody = document.getElementById('users-table');
-        users.forEach(u => {
+      .then(data => {
+        document.getElementById('count').textContent = data.length;
+        const tbody = document.getElementById('users');
+        data.forEach(u => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>${u.id}</td>
             <td>@${u.username}</td>
             <td>${u.name}</td>
             <td>${u.balance}</td>
-            <td>${u.isPremium ? '✔' : '—'}</td>
-            <td>${u.isVerified ? '✔' : '—'}</td>
+            <td>${u.isPremium ? 'да' : '—'}</td>
+            <td>${u.isVerified ? 'да' : '—'}</td>
           `;
           tbody.appendChild(tr);
         });
       })
       .catch(() => {
-        document.getElementById('users-table').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#f87171;">Нет подключения к API</td></tr>';
+        document.getElementById('users').innerHTML = '<tr><td colspan="6" style="text-align:center; color:#f87171;">Нет данных или ошибка</td></tr>';
       });
   </script>
 </body>
