@@ -13,32 +13,35 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(join(__dirname, 'public')));
 
-app.get('/', (req, res) => res.sendFile(join(__dirname, 'index.html')));
+app.get('/',      (req, res) => res.sendFile(join(__dirname, 'index.html')));
 app.get('/admin', (req, res) => res.sendFile(join(__dirname, 'admin.html')));
 
-// Временное хранилище (потом БД)
-let users = [ ]; // {id, userId, content, image?}
+// Хранилище в памяти (потом → MongoDB)
+let users = [];
+let posts = [];
 
 // Регистрация
 app.post('/api/register', (req, res) => {
   const { username, password, name } = req.body;
   if (!username  !password  !name) return res.status(400).json({ error: "Заполни всё" });
 
-  if (users.some(u => u.username === username.toLowerCase())) {
-    return res.status(409).json({ error: "Юзернейм занят" });
+  const lowerUsername = username.toLowerCase().trim();
+  if (users.some(u => u.username === lowerUsername)) {
+    return res.status(409).json({ error: "Юзернейм уже занят" });
   }
 
   const newUser = {
     id: users.length + 1,
-    username: username.toLowerCase(),
-    name,
-    password, // в реале — хеш!
-    avatar: "" + username,
+    username: lowerUsername,
+    name: name.trim(),
+    password,               // В продакшене → bcrypt.hash!
+    avatar: https://i.pravatar.cc/150?u=${lowerUsername},
     balance: 0,
     isPremium: false,
     isVerified: false,
     isBlocked: false
   };
+
   users.push(newUser);
   res.json({ success: true, user: newUser });
 });
@@ -46,19 +49,21 @@ app.post('/api/register', (req, res) => {
 // Логин
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
-  const user = users.find(u => u.username === username.toLowerCase() && u.password === password);
-  if (!user) return res.status(401).json({ error: "Неверный логин/пароль" });
+  const lowerUsername = username.toLowerCase().trim();
+  const user = users.find(u => u.username === lowerUsername && u.password === password);
+
+  if (!user) return res.status(401).json({ error: "Неверный логин или пароль" });
   res.json({ success: true, user });
 });
 
-// Текущий юзер (по id из фронта)
+// Профиль
 app.get('/api/me/:id', (req, res) => {
   const user = users.find(u => u.id == req.params.id);
-  if (!user) return res.status(404).json({ error: "Не найден" });
+  if (!user) return res.status(404).json({ error: "Пользователь не найден" });
   res.json(user);
 });
 
-// Посты текущего юзера
+// Посты пользователя
 app.get('/api/posts/:userId', (req, res) => {
   const userPosts = posts.filter(p => p.userId == req.params.userId);
   res.json(userPosts);
@@ -66,11 +71,20 @@ app.get('/api/posts/:userId', (req, res) => {
 
 app.post('/api/posts', (req, res) => {
   const { userId, content } = req.body;
-  const post = { id: posts.length + 1, userId, content, createdAt: new Date() };
+  if (!userId || !content) return res.status(400).json({ error: "Нет данных" });
+
+  const post = {
+    id: posts.length + 1,
+    userId: Number(userId),
+    content: content.trim(),
+    createdAt: new Date().toISOString()
+  };
+
   posts.push(post);
   res.json(post);
 });
 
 app.listen(PORT, () => {
-  console.log(`Сайт на http://localhost:${PORT}`);
+  console.log(`Сервер запущен → http://localhost:${PORT}`);
+  console.log(`Админка:           http://localhost:${PORT}/admin`);
 });
