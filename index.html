@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vikhrify</title>
+  <style>
+    body { margin:0; padding:0; font-family:Arial,sans-serif; background:#0d1117; color:#c9d1d9; min-height:100vh; }
+    #auth { position:fixed; inset:0; background:#0d1117; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.5rem; z-index:100; }
+    #auth.hidden { display:none; }
+    #app { display:none; padding:1rem; padding-bottom:6rem; max-width:900px; margin:0 auto; }
+    h1,h2 { color:#58a6ff; text-align:center; }
+    input, button { width:100%; max-width:360px; padding:0.8rem; margin:0.5rem 0; border-radius:6px; font-size:1rem; }
+    input { border:1px solid #30363d; background:#161b22; color:white; }
+    button { border:none; cursor:pointer; font-weight:bold; }
+    .btn-reg { background:#238636; color:white; }
+    .btn-log { background:#444c56; color:white; }
+    .btn-premium { background:#9d7fff; color:black; }
+    .btn-voice { background:#6e40c9; color:white; }
+    .post { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:1rem; margin:1rem 0; }
+    .avatar { width:40px; height:40px; border-radius:50%; background:#444; }
+    nav { position:fixed; bottom:0; left:0; right:0; background:#000; display:flex; justify-content:space-around; padding:0.8rem 0; border-top:1px solid #333; }
+    nav button { background:none; border:none; color:#aaa; font-size:0.9rem; cursor:pointer; }
+    nav button.active { color:#58a6ff; }
+    .section { display:none; }
+    .section.active { display:block; }
+    #msg { text-align:center; margin-top:1rem; font-size:1rem; }
+    .ok { color:#3fb950; }
+    .err { color:#f85149; }
+  </style>
+</head>
+<body>
+
+<div id="auth">
+  <h1>Добро пожаловать в Vikhrify!</h1>
+  <input id="username" placeholder="Юзернейм" type="text">
+  <input id="password" placeholder="Пароль" type="password">
+  <button class="btn-reg" onclick="reg()">Зарегистрироваться</button>
+  <button class="btn-log" onclick="log()">Войти</button>
+  <div id="msg"></div>
+</div>
+
+<div id="app">
+  <h1>Добро пожаловать в Vikhrify</h1>
+
+  <div id="feed" class="section active">
+    <h2>Лента</h2>
+    <div id="posts"></div>
+    <button onclick="addPost()">+ Текстовой пост</button>
+    <button class="btn-voice" onclick="addVoicePost()">+ Голосовой пост</button>
+  </div>
+
+  <div id="chats" class="section">
+    <h2>Чаты</h2>
+    <input id="chat-user" placeholder="Найти юзернейм">
+    <button onclick="startChat()">Найти и написать</button>
+    <div id="chat-area" style="margin-top:1rem; background:#161b22; padding:1rem; border-radius:8px;"></div>
+  </div>
+
+  <div id="profile" class="section">
+    <h2>Профиль</h2>
+    <img id="profile-photo" src="https://via.placeholder.com/100?text=Фото" alt="Фото" style="width:100px;height:100px;border-radius:50%;display:block;margin:0 auto;">
+    <p>Имя: <span id="profile-name">—</span> <button onclick="editName()">Изменить</button></p>
+    <p>Юзернейм: @<span id="profile-username">—</span></p>
+    <p>Баланс: <span id="profile-balance">0 VXR</span></p>
+    <p>Верификация: <span id="profile-verified">—</span></p>
+    <p>Премиум: <span id="profile-premium">нет</span></p>
+    <button class="btn-premium" onclick="buyPremium()">Купить премиум (500 VXR)</button>
+  </div>
+
+  <nav>
+    <button onclick="showSection('feed')">Лента</button>
+    <button onclick="showSection('chats')">Чаты</button>
+    <button onclick="showSection('profile')">Профиль</button>
+  </nav>
+</div>
+
+<script>
+let currentUser = null;
+const msg = document.getElementById('msg');
+const usernameInput = document.getElementById('username');
+const passwordInput = document.getElementById('password');
+
+async function reg() {
+  msg.innerHTML = '';
+  if (!usernameInput.value || !passwordInput.value) return msg.innerHTML = '<span class="err">Заполни всё</span>';
+  msg.innerHTML = '<span class="ok">Регистрирую...</span>';
+  try {
+    const r = await fetch('/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:usernameInput.value.trim(), password:passwordInput.value})});
+    const d = await r.json();
+    msg.innerHTML = d.success ? '<span class="ok">Готово! Заходи</span>' : '<span class="err">' + (d.error || 'Ошибка') + '</span>';
+  } catch {
+    msg.innerHTML = '<span class="err">Сервер не отвечает</span>';
+  }
+}
+
+async function log() {
+  msg.innerHTML = '';
+  if (!usernameInput.value || !passwordInput.value) return msg.innerHTML = '<span class="err">Заполни всё</span>';
+  msg.innerHTML = '<span class="ok">Входим...</span>';
+  try {
+    const r = await fetch('/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:usernameInput.value.trim(), password:passwordInput.value})});
+    const d = await r.json();
+    if (d.success) {
+      currentUser = usernameInput.value.trim();
+      msg.innerHTML = '<span class="ok">Ты внутри! Переходим...</span>';
+      setTimeout(() => {
+        document.getElementById('auth').classList.add('hidden');
+        document.getElementById('app').style.display = 'block';
+        showSection('feed');
+        loadPosts();
+        loadProfile();
+      }, 800);
+    } else {
+      msg.innerHTML = '<span class="err">' + (d.error || 'Неверно') + '</span>';
+    }
+  } catch {
+    msg.innerHTML = '<span class="err">Сервер не отвечает</span>';
+  }
+}
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+async function loadPosts() {
+  try {
+    const r = await fetch('/posts');
+    const posts = await r.json();
+    document.getElementById('posts').innerHTML = posts.map(p => `
+      <div class="post">
+        <div class="post-header">
+          <div class="avatar"></div>
+          <strong>@${p.username}</strong>
+        </div>
+        <p>${p.text}</p>
+      </div>
+    `).join('') || '<p>Пока постов нет</p>';
+  } catch {}
+}
+
+function addPost() {
+  const text = prompt('Что хочешь сказать?');
+  if (!text) return;
+  fetch('/posts', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, text})})
+    .then(() => loadPosts());
+}
+
+function addVoicePost() {
+  fetch('/profile', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})})
+    .then(r => r.json())
+    .then(d => {
+      if (d.success && d.user.premiumUntil) {
+        alert('Голосовой пост записан! (заглушка — премиум работает)');
+      } else {
+        alert('Голосовые посты — только для премиума. Купи за 500 VXR');
+      }
+    });
+}
+
+async function loadProfile() {
+  try {
+    const r = await fetch('/profile', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
+    const d = await r.json();
+    if (d.success) {
+      const u = d.user;
+      document.getElementById('profile-name').textContent = u.name || currentUser;
+      document.getElementById('profile-username').textContent = currentUser;
+      document.getElementById('profile-photo').src = u.photo || 'https://via.placeholder.com/100?text=Фото';
+      document.getElementById('profile-balance').textContent = u.balance + ' VXR';
+      document.getElementById('profile-verified').textContent = u.verified ? '✓' : '—';
+      document.getElementById('profile-premium').textContent = u.premiumUntil ? 'до ' + new Date(u.premiumUntil).toLocaleDateString('ru-RU') : 'нет';
+    }
+  } catch {}
+}
+
+function editName() {
+  const newName = prompt('Новое имя:', document.getElementById('profile-name').textContent);
+  if (!newName) return;
+  fetch('/profile/update', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, name:newName})})
+    .then(() => loadProfile());
+}
+
+function buyPremium() {
+  if (!confirm('Купить премиум за 500 VXR?')) return;
+  fetch('/premium/buy', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})})
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        alert('Премиум куплен на 30 дней!');
+        loadProfile();
+      } else {
+        alert(d.error || 'Не хватает VXR');
+      }
+    });
+}
+
+function startChat() {
+  const user = document.getElementById('chat-user').value.trim();
+  if (!user) return alert('Введи юзернейм');
+  document.getElementById('chat-area').innerHTML = `
+    <p>Чат с @${user}</p>
+    <input id="chat-msg" placeholder="Сообщение...">
+    <button onclick="sendChat('${user}')">Отправить</button>
+  `;
+}
+
+function sendChat(to) {
+  const msg = document.getElementById('chat-msg').value.trim();
+  if (!msg) return;
+  alert(`Сообщение отправлено @${to}: "${msg}" (пока без хранения)`);
+  document.getElementById('chat-msg').value = '';
+}
+
+document.getElementById('password').addEventListener('keypress', e => { if (e.key === 'Enter') log(); });
+</script>
+</body>
+</html>
