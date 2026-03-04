@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vikhrify</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    body {
+      background: #0d0d0d;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 80px;
+      background: #111;
+      border-right: 1px solid #222;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 20px;
+      z-index: 1000;
+    }
+
+    .sidebar .nav-link {
+      color: #aaa;
+      font-size: 1.9rem;
+      margin: 25px 0;
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+
+    .sidebar .nav-link:hover,
+    .sidebar .nav-link.active {
+      color: #0d6efd;
+      transform: scale(1.2);
+    }
+
+    .main-content {
+      margin-left: 80px;
+      padding: 20px 30px;
+    }
+
+    .fab {
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #0d6efd;
+      color: white;
+      font-size: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 15px rgba(13,110,253,0.5);
+      cursor: pointer;
+      z-index: 999;
+      transition: all 0.2s;
+    }
+
+    .fab:hover {
+      transform: scale(1.1);
+      background: #0b5ed7;
+    }
+
+    /* Мобильная версия */
+    @media (max-width: 767px) {
+      .sidebar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
+        height: 70px;
+        width: auto;
+        flex-direction: row;
+        justify-content: space-around;
+        padding: 0;
+        border-top: 1px solid #222;
+        background: #111;
+      }
+
+      .sidebar .nav-link {
+        margin: 0;
+        font-size: 1.7rem;
+      }
+
+      .main-content {
+        margin-left: 0;
+        margin-bottom: 80px;
+        padding: 15px;
+      }
+
+      .fab {
+        bottom: 90px;
+        right: 20px;
+      }
+    }
+
+    .post {
+      background: #1f1f1f;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    #loginModal .modal-content {
+      background: #1a1a1a;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Боковая панель / нижняя панель -->
+<div class="sidebar">
+  <i class="bi bi-house-door nav-link active" onclick="showTab(0)" title="Лента"></i>
+  <i class="bi bi-clock-history nav-link" onclick="showTab(1)" title="Истории"></i>
+  <i class="bi bi-chat-dots nav-link" onclick="showTab(2)" title="Чат"></i>
+  <i class="bi bi-person nav-link" onclick="showTab(3)" title="Профиль"></i>
+  <i class="bi bi-star nav-link" onclick="showTab(4)" title="Premium"></i>
+  <i id="adminIcon" class="bi bi-gear nav-link d-none" onclick="showTab(5)" title="Админ"></i>
+</div>
+
+<!-- Кнопка + для создания поста -->
+<div class="fab" onclick="openCreatePostModal()">
+  <i class="bi bi-plus-lg"></i>
+</div>
+
+<!-- Основной контент -->
+<div class="main-content">
+
+  <!-- Лента (открыта по умолчанию) -->
+  <div id="tab0" class="tab-content active">
+    <div id="feed"></div>
+  </div>
+
+  <!-- Истории -->
+  <div id="tab1" class="tab-content d-none">
+    <div id="stories"></div>
+  </div>
+
+  <!-- Чат -->
+  <div id="tab2" class="tab-content d-none">
+    <div class="row">
+      <div class="col-md-4">
+        <h5><i class="bi bi-people"></i> Онлайн</h5>
+        <div id="onlineUsers" class="list-group"></div>
+      </div>
+      <div class="col-md-8">
+        <h5 id="chatWith">Чат</h5>
+        <div id="privateMessages" class="border p-3 rounded mb-3"></div>
+        <form id="privateForm" class="input-group">
+          <input id="privateInput" class="form-control
