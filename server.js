@@ -13,7 +13,7 @@ async function load() {
     try {
         db.users = JSON.parse(await fs.readFile(join(__dirname, 'users.json'), 'utf8'));
         db.posts = JSON.parse(await fs.readFile(join(__dirname, 'posts.json'), 'utf8'));
-    } catch (e) { db = { users: [], posts: [], chats: [] }; }
+    } catch (e) { db = { users: [], posts: [], posts: [] }; }
 }
 await load();
 
@@ -22,39 +22,36 @@ async function save() {
     await fs.writeFile(join(__dirname, 'posts.json'), JSON.stringify(db.posts, null, 2));
 }
 
-// Регистрация с проверкой (только латиница)
+// Регистрация с проверкой уникальности (только латиница)
 app.post('/api/register', async (req, res) => {
     const { name, username, password } = req.body;
     const cleanUser = username.toLowerCase().replace(/[^a-z0-9]/g, '');
     
     if (db.users.find(u => u.username === cleanUser)) {
-        return res.json({ success: false, error: "Этот юзернейм уже занят!" });
+        return res.json({ success: false, error: "Этот юзернейм занят!" });
     }
-    const user = { id: Date.now(), name, username: cleanUser, password, followers: 0 };
+    const user = { id: Date.now(), name, username: cleanUser, password, followers: [], isVerified: false };
     db.users.push(user);
     await save();
     res.json({ success: true, user });
 });
 
-app.post('/api/posts', async (req, res) => {
-    db.posts.push({ ...req.body, createdAt: new Date() });
-    await save();
-    res.json({ success: true });
+app.post('/api/login', (req, res) => {
+    const { username, password } = req.body;
+    const user = db.users.find(u => u.username === username.toLowerCase() && u.password === password);
+    user ? res.json({ success: true, user }) : res.json({ success: false });
 });
-
-// Отдача файлов из корня
-app.get('/', (req, res) => res.sendFile(join(__dirname, 'index.html')));
-app.get('/admin', (req, res) => res.sendFile(join(__dirname, 'admin.html')));
-app.get('/api/all', (req, res) => res.json(db));
 
 app.post('/api/admin/action', async (req, res) => {
     const { userId, type, value } = req.body;
     const u = db.users.find(x => x.id === userId);
-    if(u) {
-        if(type === 'boost') u.followers += value;
-        await save();
-    }
+    if(u && type === 'boost') u.followers.push(Date.now()); // Пример логики
+    await save();
     res.json({ success: true });
 });
 
-app.listen(3000, () => console.log('Сервер работает в стиле Twitter'));
+app.get('/', (req, res) => res.sendFile(join(__dirname, 'index.html')));
+app.get('/admin', (req, res) => res.sendFile(join(__dirname, 'admin.html')));
+app.get('/api/all', (req, res) => res.json(db));
+
+app.listen(3000, () => console.log('Vikhrify запущен!'));
