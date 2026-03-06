@@ -1,13 +1,20 @@
 {
-  "name": "vikhrify",
-  "version": "1.0.0",
+  "name": "vikhrify-messenger",
+  "version": "1.1.0",
+  "description": "Vikhrify — мессенджер с лентой, чатами (E2E шифрование), профилями и админ-панелью",
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
+  "author": "LU",
+  "license": "ISC",
   "dependencies": {
     "express": "^4.19.2",
     "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
   }
 }
