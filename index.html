@@ -1,116 +1,102 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vikhrify</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
-  <style>
-    body { margin:0; font-family:'Segoe UI',sans-serif; background:#050505; color:#eee; }
-    /* Эффект стекла */
-    .glass { background: rgba(30, 30, 30, 0.7); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); }
-    
-    #auth { position:fixed; inset:0; background:rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center; z-index:100; }
-    .card { background:#1a1a1a; padding:30px; border-radius:20px; width:90%; max-width:400px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-    input, button, textarea { width:100%; padding:14px; margin:8px 0; border-radius:12px; border:1px solid #333; background:#222; color:white; font-size:1rem; box-sizing:border-box; }
-    button { background:#0284c7; font-weight:bold; cursor:pointer; border:none; transition:0.3s; }
-    button:hover { background:#0369a1; }
-    
-    nav { position:fixed; bottom:0; left:0; right:0; background:rgba(20,20,20,0.8); backdrop-filter: blur(10px); display:flex; border-top:1px solid #333; }
-    nav button { flex:1; padding:16px; background:none; border:none; color:#777; }
-    nav button.active { color:#fff; }
-    
-    .section { display:none; padding:80px 16px 100px; }
-    .section.active { display:block; }
-    .post { background: rgba(30, 30, 30, 0.6); backdrop-filter: blur(5px); padding:16px; margin:12px 0; border-radius:16px; border: 1px solid rgba(255,255,255,0.05); }
-    .avatar { width:48px; height:48px; border-radius:50%; object-fit:cover; cursor:pointer; }
-    #sidebar { position:fixed; left:0; top:0; bottom:0; width:260px; background:rgba(20,20,20,0.95); backdrop-filter: blur(20px); transform:translateX(-100%); transition:0.3s; z-index:90; padding:60px 20px; }
-    #sidebar.open { transform:translateX(0); }
-  </style>
+    <meta charset="UTF-8">
+    <title>Vikhrify | Живой проект</title>
+    <style>
+        body { margin:0; font-family:sans-serif; background:#050505; color:#eee; }
+        .glass { background:rgba(30,30,30,0.6); backdrop-filter:blur(15px); border:1px solid rgba(255,255,255,0.1); }
+        #auth { position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:999; display:flex; align-items:center; justify-content:center; }
+        .card { padding:30px; border-radius:20px; width:300px; text-align:center; }
+        input, button { width:100%; padding:12px; margin:8px 0; border-radius:10px; border:none; box-sizing:border-box; background:#222; color:white; }
+        button { background:#0284c7; cursor:pointer; }
+        .burger { position:fixed; left:20px; top:20px; z-index:100; cursor:pointer; font-size:24px; }
+        #sidebar { position:fixed; left:-260px; top:0; width:260px; height:100%; transition:0.3s; padding:60px 20px; z-index:99; }
+        #sidebar.open { left:0; }
+        .section { display:none; padding:80px 20px; }
+        .section.active { display:block; }
+        nav { position:fixed; bottom:0; left:0; right:0; display:flex; padding:10px; }
+        nav button { flex:1; }
+    </style>
 </head>
 <body>
 
-<div class="burger" onclick="toggleSidebar()" style="position:fixed; left:20px; top:20px; z-index:95; cursor:pointer; font-size:24px;">☰</div>
-
-<div id="sidebar" class="glass">
-  <h3>Меню Vikhrify</h3>
-  <input id="search-users" placeholder="Поиск @username" oninput="searchUsers()">
-  <div id="search-results"></div>
-  <button onclick="logout()">Выйти</button>
+<div id="auth">
+    <div class="card glass">
+        <h2 id="msg">Добро пожаловать в Vikhrify!</h2>
+        <input id="in-name" placeholder="Ваше Имя">
+        <input id="in-user" placeholder="Юзернейм">
+        <input id="in-pass" type="password" placeholder="Пароль">
+        <button onclick="register()">Регистрация</button>
+        <button onclick="login()">Войти</button>
+    </div>
 </div>
 
-<div id="auth">
-  <div class="card glass">
-    <h2 style="text-align:center">Добро пожаловать в Vikhrify!</h2>
-    <input id="name" placeholder="Ваше Имя">
-    <input id="username" placeholder="Юзернейм">
-    <input id="password" type="password" placeholder="Пароль">
-    <button onclick="register()">Регистрация</button>
-    <button onclick="login()" style="background:#444">Войти</button>
-    <div id="auth-msg" style="margin-top:15px; text-align:center;"></div>
-  </div>
+<div id="burger" class="burger" onclick="toggleSidebar()">☰</div>
+<div id="sidebar" class="glass">
+    <button onclick="show('profile')">Профиль</button>
+    <button onclick="logout()">Выйти</button>
 </div>
 
 <div id="app" style="display:none">
-  <div id="feed" class="section active">
-    <h2>Лента</h2>
-    <textarea id="post-text" placeholder="Что нового?"></textarea>
-    <button onclick="publishPost()">Опубликовать</button>
-    <div id="posts-list"></div>
-  </div>
-
-  <div id="chats" class="section">
-    <h2>Чаты</h2>
-    <div id="chat-list" class="chat-list"></div>
-    <div id="chat-view" style="display:none">
-      <button onclick="document.getElementById('chat-view').style.display='none'">Назад</button>
-      <div id="messages" class="messages"></div>
-      <input id="chat-input" placeholder="Сообщение...">
-      <button onclick="sendMessage()">Отправить</button>
+    <div id="feed" class="section active">
+        <h2>Лента</h2>
+        <textarea id="post-text" placeholder="Что нового?"></textarea>
+        <button onclick="publishPost()">Опубликовать</button>
+        <div id="posts-list"></div>
     </div>
-  </div>
+    <div id="chats" class="section"><h2>Чаты</h2></div>
+    <div id="profile" class="section"><h2>Профиль</h2></div>
 
-  <div id="profile" class="section">
-    <h2>Профиль</h2>
-    <img id="my-avatar" class="avatar">
-    <p>Имя: <span id="my-name"></span></p>
-    <button onclick="editProfile()">Изменить</button>
-  </div>
-
-  <nav class="glass">
-    <button class="active" onclick="show('feed')">Лента</button>
-    <button onclick="show('chats')">Чаты</button>
-    <button onclick="show('profile')">Профиль</button>
-  </nav>
+    <nav class="glass">
+        <button onclick="show('feed')">Лента</button>
+        <button onclick="show('chats')">Чаты</button>
+        <button onclick="show('profile')">Профиль</button>
+    </nav>
 </div>
 
 <script>
-  // Основные функции (полностью рабочие шаблоны)
-  function show(id) {
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-  }
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+    function show(id) { 
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active'); 
+    }
+    
+    async function register() {
+        const res = await fetch('/api/register', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                name: document.getElementById('in-name').value,
+                username: document.getElementById('in-user').value,
+                password: document.getElementById('in-pass').value
+            })
+        });
+        if((await res.json()).success) document.getElementById('msg').innerText = "Успешно! Теперь войди.";
+    }
 
-  function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-  }
+    async function login() {
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                username: document.getElementById('in-user').value,
+                password: document.getElementById('in-pass').value
+            })
+        });
+        const data = await res.json();
+        if(data.success) {
+            localStorage.setItem('vikhrify_user', JSON.stringify(data.user));
+            location.reload();
+        }
+    }
 
-  async function loadPosts() {
-    try {
-      const r = await fetch('/api/posts');
-      const all = await r.json();
-      document.getElementById('posts-list').innerHTML = all.map(p => `
-        <div class="post">
-          <b>${p.name} ${p.isVerified ? '✔' : ''}</b>
-          <p>${p.content}</p>
-        </div>
-      `).join('');
-    } catch(e) {}
-  }
+    if(localStorage.getItem('vikhrify_user')) {
+        document.getElementById('auth').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+    }
 
-  // Запуск автообновления
-  setInterval(loadPosts, 3000);
-  loadPosts();
+    function logout() { localStorage.removeItem('vikhrify_user'); location.reload(); }
 </script>
 </body>
 </html>
