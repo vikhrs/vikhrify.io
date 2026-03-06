@@ -6,34 +6,46 @@
   <style>
     body { font-family:Arial; background:#000; color:#eee; padding:20px; }
     table { width:100%; border-collapse:collapse; margin:20px 0; }
-    th,td { border:1px solid #333; padding:8px; text-align:left; }
+    th,td { border:1px solid #333; padding:10px; text-align:left; }
     th { background:#222; }
     button { padding:6px 12px; margin:2px; cursor:pointer; }
-    input { padding:4px; width:80px; }
+    input { padding:6px; }
   </style>
 </head>
 <body>
-  <h1>Админ-панель</h1>
-  <p>Пользователей: <b id="uc">0</b> | Постов: <b id="pc">0</b></p>
+  <h1>Админ-панель Vikhrify</h1>
+  <p>Пользователей: <b id="usersCount">0</b> | Постов: <b id="postsCount">0</b></p>
 
-  <input id="search" placeholder="Поиск..." oninput="filter()" style="width:300px; margin-bottom:16px; padding:8px;">
+  <input id="search" placeholder="Поиск по имени / @username" oninput="filterTable()" style="width:320px; padding:8px; margin:12px 0;">
+
   <table>
-    <thead><tr><th>ID</th><th>@username</th><th>Имя</th><th>Баланс</th><th>Галочка</th><th>Статус</th><th>Действия</th></tr></thead>
-    <tbody id="tbl"></tbody>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>@username</th>
+        <th>Имя</th>
+        <th>Галочка</th>
+        <th>Блокировка</th>
+        <th>Переписки</th>
+        <th>Накрутка подписчиков</th>
+      </tr>
+    </thead>
+    <tbody id="usersTable"></tbody>
   </table>
 
   <script>
-  const PASS = 'sehpy9-qiqjux-hofgyN';
-  const headers = { 'x-admin-pass': PASS };
+  const ADMIN_PASS = 'sehpy9-qiqjux-hofgyN';
+  const headers = { 'x-admin-pass': ADMIN_PASS };
 
-  async function loadAdmin() {
+  async function load() {
     const stats = await (await fetch('/api/admin/stats', {headers})).json();
-    document.getElementById('uc').textContent = stats.usersCount;
-    document.getElementById('pc').textContent = stats.postsCount;
+    document.getElementById('usersCount').textContent = stats.usersCount;
+    document.getElementById('postsCount').textContent = stats.postsCount;
 
     const users = await (await fetch('/api/admin/users', {headers})).json();
-    const tbody = document.getElementById('tbl');
+    const tbody = document.getElementById('usersTable');
     tbody.innerHTML = '';
+
     users.forEach(u => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -41,34 +53,67 @@
         <td>@${u.username}</td>
         <td>${u.name}</td>
         <td>
-          <input type="number" value="${u.balance}" id="bal${u.id}">
-          <button onclick="update(${u.id}, 'balance', document.getElementById('bal${u.id}').value)">Сохранить</button>
+          ${u.isVerified ? '✔' : '—'}
+          <button onclick="toggleVerified(${u.id}, \( {!u.isVerified})"> \){u.isVerified ? 'Забрать' : 'Выдать'}</button>
         </td>
-        <td>${u.isVerified ? '✔' : '—'} <button onclick="update(${u.id}, 'isVerified', ${!u.isVerified})">${u.isVerified ? 'Забрать' : 'Выдать'}</button></td>
-        <td>${u.isBlocked ? 'Заблокирован' : 'Активен'} <button onclick="update(${u.id}, 'isBlocked', ${!u.isBlocked})">${u.isBlocked ? 'Разблокировать' : 'Заблокировать'}</button></td>
-        <td></td>
+        <td>
+          ${u.isBlocked ? '<span style="color:#f33">Заблокирован</span>' : 'Активен'}
+          <button onclick="toggleBlocked(${u.id}, \( {!u.isBlocked})"> \){u.isBlocked ? 'Разблокировать' : 'Заблокировать'}</button>
+        </td>
+        <td><button onclick="viewChats(${u.id})">Смотреть</button></td>
+        <td>
+          <input type="number" id="addf${u.id}" placeholder="+" style="width:60px">
+          <button onclick="addFollowers(${u.id})">Добавить</button>
+        </td>
       `;
       tbody.appendChild(tr);
     });
   }
 
-  async function update(id, field, val) {
+  async function toggleVerified(id, value) {
     await fetch('/api/admin/user', {
       method: 'PATCH',
       headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, [field]: val })
+      body: JSON.stringify({ id, isVerified: value })
     });
-    loadAdmin();
+    load();
   }
 
-  function filter() {
+  async function toggleBlocked(id, value) {
+    await fetch('/api/admin/user', {
+      method: 'PATCH',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, isBlocked: value })
+    });
+    load();
+  }
+
+  async function addFollowers(id) {
+    const cnt = Number(document.getElementById(`addf${id}`).value);
+    if (!cnt || cnt < 1) return;
+    await fetch('/api/admin/add-followers', {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, count: cnt })
+    });
+    alert(`Добавлено ${cnt} подписчиков`);
+    load();
+  }
+
+  function viewChats(id) {
+    alert(`Переписки пользователя #${id} — пока открываются в консоли (реализация на фронте позже)`);
+    console.log(`Загрузка чатов пользователя ${id}...`);
+    // Здесь можно сделать модальное окно или переход
+  }
+
+  function filterTable() {
     const q = document.getElementById('search').value.toLowerCase();
-    document.querySelectorAll('#tbl tr').forEach(tr => {
+    document.querySelectorAll('#usersTable tr').forEach(tr => {
       tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
     });
   }
 
-  loadAdmin();
+  load();
   </script>
 </body>
 </html>
