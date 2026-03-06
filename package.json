@@ -1,11 +1,22 @@
+// package.json
 {
   "name": "vikhrify",
   "version": "1.0.0",
+  "description": "Custom Messenger App",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
     "express": "^4.18.2",
-    "socket.io": "^4.7.2",
-    "mongoose": "^7.5.0",
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2"
-  }
+    "mongoose": "^8.0.0",
+    "socket.io": "^4.7.5",
+    "bcrypt": "^5.1.1",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "crypto-js": "^4.2.0",
+    "web-push": "^3.6.7"
+  },
+  "author": "Edward Vikhr",
+  "license": "ISC"
 }
