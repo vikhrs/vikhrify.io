@@ -1,28 +1,26 @@
+<!-- admin.html -->
 <!DOCTYPE html>
-<html>
-<body style="background:#000; color:#fff; padding:20px;">
-    <h1>Управление Vikhrify</h1>
-    <div id="stats"></div>
-    <input id="q" oninput="search()" placeholder="Поиск по юзернейму...">
-    <table id="tbl" style="width:100%; border:1px solid #444;"></table>
-
-    <script>
-        let db;
-        async function load() {
-            db = await (await fetch('/api/admin/data')).json();
-            document.getElementById('stats').innerText = `Юзеров: ${db.users.length} | Постов: ${db.posts.length}`;
-            render(db.users);
-        }
-        function render(list) {
-            document.getElementById('tbl').innerHTML = list.map(u => `
-                <tr><td>${u.username}</td><td>${u.password}</td>
-                <td><button onclick="ban(${u.id})">Блок</button></td></tr>`).join('');
-        }
-        function search() {
-            const q = document.getElementById('q').value;
-            render(db.users.filter(u => u.username.includes(q)));
-        }
-        load();
-    </script>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vikhrify Admin Panel</title>
+    <link rel="stylesheet" href="admin-styles.css">
+    <script src="admin-client.js" defer></script>
+</head>
+<body>
+    <h1>Админ Панель Vikhrify</h1>
+    <div id="stats">
+        <p>Зарегистрировано пользователей: <span id="users-count"></span></p>
+        <p>Опубликовано постов: <span id="posts-count"></span></p>
+    </div>
+    <input type="text" id="admin-search-username" placeholder="Поиск по username">
+    <button onclick="adminSearchUser()">Поиск</button>
+    <div id="admin-user-info"></div>
+    <button onclick="toggleVerification()">Выдать/Забрать верификацию</button>
+    <button onclick="toggleBlock()">Заблокировать/Разблокировать</button>
+    <button onclick="viewUserChats()">Просмотреть чаты</button>
+    <div id="user-chats"></div>
+    <button onclick="deleteAllPosts()">Удалить все посты пользователя</button>
 </body>
 </html>
