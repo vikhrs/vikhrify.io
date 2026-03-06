@@ -232,8 +232,8 @@ app.delete('/admin/delete-posts/:userId', auth, adminAuth, async (req, res) => {
 
 // Push Notifications Setup
 const vapidKeys = {
-  publicKey: 'YOUR_PUBLIC_VAPID_KEY',
-  privateKey: 'YOUR_PRIVATE_VAPID_KEY'
+  publicKey: 'BI3jIOqOR5KqNiagyLemVsLTDSqDx1U7SHzF2wV-BNxQ6phiZvGSzsl9-Y1rY4dGN6VqiRHKTpmk90y7xdLmUrw',
+  privateKey: '6bwOWQfcDBux3Uu-4gSVZgraPRUqR5VA6FtvU9-76JM'
 };
 webpush.setVapidDetails('mailto:admin@vikhrify.com', vapidKeys.publicKey, vapidKeys.privateKey);
 
